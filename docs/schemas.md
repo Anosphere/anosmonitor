@@ -4,8 +4,10 @@ The settings, the tables, the states and the rules of the monitor, and at
 the end the notes: every choice the build made where the plan is silent.
 
 Built from `~/Desktop/Z-TestNet/forclaude/monitor-plan-1.md` (FINAL,
-2026-11-17), in that plan's four steps. Sections 1 to 7 carry the plan's
-own numbers, so "section 6.3" means the same here and there.
+2026-11-17), in that plan's four steps. Sections 1 to 7, 9 and 10 carry
+the plan's own numbers, so "section 6.3" means the same here and there.
+The plan's section 8, what cannot be seen from outside, holds nothing
+that is built, so this file has no section 8.
 
 **Step 1, the project and the sweep, 2026-11-17.** The folder, the
 packages, the settings, the tables, the registry, the sweep, the newest
@@ -14,6 +16,13 @@ sweeps and logs, and nothing shows the result yet. Checked with
 `node --check` on every file under `server/`, and with nothing else: the
 server was not started and no database was made. The first start is the
 test.
+
+**Step 2, the door and the overview, 2026-11-17.** The passkey checks,
+the challenges, the session, the door's routes, the headers, and the two
+routes of the overview. After this step the server answers everything the
+page will ask, and there is no page yet. Checked with `node --check` on
+every file under `server/`, and with nothing else: the server was still
+not started, no database was made, and no passkey was ever checked.
 
 ## 1. The project
 
@@ -31,7 +40,7 @@ monitorsoftware/
   server/
     index.js                          the start: settings, schema, registry, sweeps, listen
     config.js                         the settings, each with a local default
-    app.js                            the Express app: GET /api/health
+    app.js                            the Express app: headers, routes
     db/pool.js  db/schema.js          the pool; applying db/schema.sql at the start
     registry/registry.js              reading, checking, hashing and keeping the registry
     sweep/ask.js                      one GET with the time limit and the size limit
@@ -40,6 +49,11 @@ monitorsoftware/
     sweep/states.js                   one validator's state; the two-sweep rule
     sweep/history.js                  the two history tables and their log lines
     software/github.js                the newest commits on GitHub main
+    auth/webauthn.js                  the passkey checks
+    auth/challenges.js                the challenges, in memory
+    auth/sessions.js                  the cookie and the sessions table
+    auth/auth.routes.js               /api/session, /api/passkey/..., /api/passkeys, /api/sign-out
+    overview/overview.routes.js       /api/overview, /api/validators/:id/history
   docs/schemas.md                     this file
 ```
 
@@ -51,15 +65,17 @@ the server's four, at the versions the other projects hold: `express`
 `@simplewebauthn/server` 14.0.3 (the masterpod's).
 
 The start (`server/index.js`), in order: the settings; `db/schema.sql`
-applied; the registry (the kept copy, then GitHub); the newest commits on
-GitHub; the sweeps; the listen on `PORT`, on 127.0.0.1. It prints where
-it listens, the origins, the relying-party id, the database, the registry
-address, the sweep's two numbers and the build folder. A database that
-cannot be reached stops the start with one line.
+applied; the sessions that are past their time deleted; the registry (the
+kept copy, then GitHub); the newest commits on GitHub; the sweeps; the
+listen on `PORT`, on 127.0.0.1. It prints where it listens, the origins,
+the relying-party id, the database, the registry address, the sweep's two
+numbers and the build folder. A database that cannot be reached stops the
+start with one line.
 
 `GET /api/health`, open to anyone:
 `{ "status": "ok", "lastSweepAt": <time or null> }`. `lastSweepAt` is
-when the newest sweep started, null before the first.
+when the newest sweep started, null before the first. Every other route
+is in section 9.4.
 
 ## 2. The settings
 
@@ -191,9 +207,9 @@ CREATE TABLE IF NOT EXISTS sweeps (
   answered on port 3000. `counted`, `keyholders_up`, `position` and
   `leader` are null for a sweep that reached nobody.
 
-`owner`, `passkeys` and `sessions` are made now and first used by the
-door (step 2). The passkey challenges are not a table; they will live in
-the server's memory.
+`owner`, `passkeys` and `sessions` are the door's (section 9). The passkey
+challenges are not a table; they live in the server's memory (section
+9.2).
 
 ## 4. The registry
 
@@ -463,6 +479,259 @@ whether the two are the same (`softwareLine(usual)`).
 During a pull round this line and the amber "Other software" tiles are the
 tick sheet: the tiles turn as each banker pulls.
 
+## 9. The door
+
+Only the owner's passkey opens the monitor. While the server holds no
+passkey, the first one made is the owner's. From then on nobody makes a
+passkey from outside: the page only signs in, and one more passkey is
+added from inside, while signed in. There is no setup word, and no
+command is run on the server.
+
+The weak moment is the plan's: for the first minutes after the site is
+up, whoever makes the first passkey owns it. If every passkey is lost, or
+a stranger made the first one, one line on the server empties the list
+and ends every session (`delete from passkeys`). The first passkey made
+after it is the owner's again.
+
+### 9.1 The checks
+
+`server/auth/webauthn.js` is the masterpod's file,
+`masterpodsoftware/src/auth/webauthn.js`, which wraps
+`@simplewebauthn/server`, without PRF. The monitor makes no keys; it only
+needs to know that it is the owner.
+
+- `verifyRegistration(passkey, challenge)` checks a new passkey and
+  returns its credential id and its COSE public key.
+- `verifyAuthentication(assertion, challenge, credentialId, publicKey)`
+  checks a sign-in against a stored passkey.
+
+Both check the challenge, `RP_ID`, the `WEB_ORIGIN` list and user
+verification. The sign counter is ignored: the stored counter is given as
+0, so a synced passkey that reports 0 and a hardware key that counts up
+both pass. The library throws on every failure; each wrapper turns that
+into a reason, and the reason goes to the log.
+
+Both take the passkey in the form the browser's
+`PublicKeyCredential.toJSON()` gives it, base64url everywhere.
+
+### 9.2 The challenges
+
+`server/auth/challenges.js`. A challenge is 32 random bytes, handed out
+as 64 hex characters. The server keeps it in memory with its purpose for
+five minutes, and forgets it when it is used. It keeps 200 at most; the
+oldest goes first. One process runs the monitor, so memory is enough. A
+restart in the middle of a sign-in means the operator presses the button
+again.
+
+A challenge is used the first time a route looks it up, also when the
+request is refused after that. So every press of a button asks for a new
+challenge.
+
+### 9.3 The session
+
+`server/auth/sessions.js`. A sign-in makes 32 random bytes. Their
+base64url form is the cookie's value; their SHA-256 goes into `sessions`
+with `expires_at` = now + `SESSION_DAYS`.
+
+The cookie: name `monitor_session`, `HttpOnly`, `SameSite=Strict`,
+`Path=/`, `Max-Age` of `SESSION_DAYS` days, and `Secure` when every origin
+in `WEB_ORIGIN` starts with `https:`. The page's own scripts cannot read
+it.
+
+A request is signed in when its cookie's hash is a row whose `expires_at`
+is ahead. The days count from the sign-in, and nothing makes them more:
+after `SESSION_DAYS` the passkey is asked for once more. Rows that are
+past it are deleted at the start and once an hour.
+
+### 9.4 The routes
+
+All under `/api`, JSON in and out, bodies up to 64 KB. A POST or DELETE
+that carries an `Origin` header that is not in `WEB_ORIGIN` is refused
+with 403.
+
+Open to anyone:
+
+| route | what it does |
+|---|---|
+| `GET /api/health` | `{ "status": "ok", "lastSweepAt": <time or null> }` |
+| `GET /api/session` | `{ "owner": <is there a passkey>, "signedIn": <true or false> }` |
+| `POST /api/passkey/challenge` | body `{ "purpose": "create" \| "signIn" \| "add" }`. `create` only while there is no passkey, else 409 `the owner exists already`. `signIn` only when there is one, else 409 `no owner yet`. `add` only when signed in, else 401. Answers `{ "challenge", "rpId" }`, and for `create` and `add` also `"userHandle"` (32 hex characters) and `"exclude"` (the ids of the passkeys there are, base64url). |
+| `POST /api/passkey/create` | body `{ "challenge", "passkey", "label" }`. The challenge must be one handed out for `create`. The registration is checked. Then, in one transaction that only one request at a time can be in: if there is still no passkey, the `owner` row and the passkey are written, and a session starts. Otherwise 409 `the owner exists already`. Answers 201 `{ "signedIn": true }`, with the cookie. |
+| `POST /api/passkey/sign-in` | body `{ "challenge", "assertion" }`. The challenge must be one for `signIn`. The passkey is found by the assertion's id, else 401 `unknown passkey`. The assertion is checked, `last_used_at` is set, a session starts. Answers `{ "signedIn": true }`, with the cookie. |
+
+Only when signed in, else 401 `not signed in`:
+
+| route | what it does |
+|---|---|
+| `POST /api/passkey/add` | body `{ "challenge", "passkey", "label" }`, a challenge for `add`. Writes one more passkey. Answers 201 `{ "id": <the new passkey's id> }`. |
+| `GET /api/passkeys` | the list, oldest first: `{ "passkeys": [{ "id", "label", "createdAt", "lastUsedAt", "thisSession" }] }`. `lastUsedAt` is null for a passkey that has not signed in. `thisSession` is true for the one this session signed in with. |
+| `DELETE /api/passkeys/:id` | removes one, and with it its sessions. The last one is refused with 409 `the last passkey stays`. Answers `{ "removed": true }`. |
+| `POST /api/sign-out` | deletes this session's row and clears the cookie. Answers `{ "signedIn": false }`. |
+| `GET /api/overview` | section 10 |
+| `GET /api/validators/:id/history` | the validator's last ten rows of `validator_states`, newest first: `{ "history": [{ "state", "detail", "startedAt", "endedAt" }] }` |
+
+The user handle is made when a `create` challenge is handed out, kept with
+that challenge, and written to `owner` when the first passkey is. An `add`
+challenge carries the handle of the `owner` row. So every passkey of the
+owner has the same handle, and a phone lists them as one account.
+
+A label is 1 to 40 characters after trimming. The page will send `Owner`
+for the first passkey and ask for a label when one is added.
+
+A refusal is `{ "error": "<a short phrase>" }` with its status:
+
+| status | phrase | when |
+|---|---|---|
+| 400 | `bad request shape` | the body is not what the route takes |
+| 400 | `the label must be 1 to 40 characters` | `create` and `add` |
+| 400, 413, 415 | `bad request` | a request that cannot be read: a body that is not JSON or is longer than 64 KB, a path that cannot be decoded |
+| 401 | `not signed in` | a route that needs the session, and the challenge for `add` |
+| 401 | `unknown or expired challenge` | the challenge was not handed out for this, is older than five minutes, or was used |
+| 401 | `unknown passkey` | a sign-in with a passkey that is not in the list |
+| 401 | `passkey verification failed` | the passkey check refused, or a new passkey's credential id is not 16 to 1023 bytes; the reason is in the log |
+| 403 | `origin not allowed` | a POST or DELETE from another origin |
+| 404 | `unknown passkey` | a DELETE for an id that is not in the list |
+| 404 | `unknown validator` | a history for an id that is not a whole number above 0 |
+| 404 | `Not Found`, with `"path"` | a path no route answers |
+| 409 | `the owner exists already` | `create` while there is a passkey |
+| 409 | `no owner yet` | `signIn` while there is no passkey; `add` while there is no `owner` row |
+| 409 | `this passkey is in the list already` | `add` with a passkey that is there |
+| 409 | `the last passkey stays` | a DELETE for the last passkey |
+| 500 | `Internal Server Error` | anything else, with one log line |
+
+The door's log lines:
+
+```text
+passkey 1: the owner's passkey was made
+passkey 1: signed in
+passkey 2: added
+passkey 2: removed
+passkey check failed at sign-in: <the library's reason>
+```
+
+### 9.5 What a stranger gets
+
+Whether there is an owner, a challenge, and `GET /api/health`. From step 3
+on also the sign-in page and the Angular files, which hold no data. Every
+answer with data needs the session. A person who breaks into monitor1
+gets the public keys of the owner's passkeys, the session hashes and a
+history of public facts. Nothing on monitor1 opens anything else.
+
+### 9.6 The headers
+
+Set by `server/app.js` on every answer, not by nginx, so the page runs
+under the same headers on the operator's own machine as on monitor1:
+
+```text
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: no-referrer
+X-Robots-Tag: noindex, nofollow
+```
+
+and `Cache-Control: no-store` on every answer under `/api`.
+
+`'unsafe-inline'` for styles is what Angular Material needs. The two
+Google hosts are the fonts the page will load. For `script-src 'self'` to
+hold, the page's build must write no script into the page itself. That is
+a setting of `angular.json`, which comes with step 3.
+
+## 10. The overview
+
+`server/overview/overview.routes.js`. `GET /api/overview`, signed in. One
+answer holds the whole screen. It is put together from memory (the
+registry in use, the newest sweep, the newest commits on GitHub main), so
+asking often costs nothing.
+
+```json
+{
+  "sweptAt": "2026-11-17T18:25:40.000Z",
+  "tookMs": 912,
+  "registryRead": true,
+  "reachedNobody": false,
+  "stale": false,
+  "network": { "active": 25, "counted": 25, "floor": 13, "keyholdersUp": 25,
+               "position": 639, "recordHash": "5efff567...", "leader": 22 },
+  "problems": [ { "validatorId": 24, "state": "notCounted", "since": "..." } ],
+  "validators": [
+    { "id": 1, "active": true, "address": "https://35.237.125.139:3000",
+      "state": "good", "since": "...", "keyholderUp": true,
+      "answerMs": 413, "reason": null,
+      "doorman": { "commit": "4cfade2", "registryHash": "1076ef27...", "registryActive": 25,
+                   "uptimeSeconds": 397800, "certificateDaysLeft": 4.5, "certificateNotAfter": "..." },
+      "worker": { "status": "ok", "commit": "6b27427", "registryHash": "1076ef27...",
+                  "uptimeSeconds": 397080, "dbMs": 17, "counted": true, "position": 639,
+                  "recordHash": "5efff567...", "leader": 22, "ignored": [] },
+      "keyholder": { "answerMs": 404, "status": "ok", "commit": "6d4b89c",
+                     "uptimeSeconds": 397080, "dbMs": 2, "copiesWaiting": 0 } }
+  ],
+  "software": {
+    "readAt": "...",
+    "validator": { "commit": "6b27427", "running": 25, "main": "6b27427...", "same": true },
+    "doorman":   { "commit": "4cfade2", "running": 25, "main": "4cfade2...", "same": true },
+    "keyholder": { "commit": "6d4b89c", "running": 25, "main": "6d4b89c...", "same": true }
+  },
+  "registry": { "hash": "1076ef27...", "rows": 25, "active": 25, "fetchedAt": "...",
+                "usual": "1076ef27...", "same": true }
+}
+```
+
+- `registryRead` is false while no registry is there at all. Then
+  `validators` is empty, and `registry` is null.
+- `sweptAt` is when the newest sweep started, and `tookMs` how long its
+  asking took. Until the first sweep after a start has ended, both are
+  null, `network` is null, and no active row has a state.
+- `reachedNobody` is true when the newest sweep reached no validator on
+  port 3000. Such a sweep is not judged: `state`, `since`, `keyholderUp`,
+  `counted` and `keyholdersUp` are what the screen showed before it;
+  `position`, `recordHash` and `leader` are null; and no commit and no
+  usual hash is known.
+- `stale` is true when `sweptAt` is more than three times `SWEEP_SECONDS`
+  old.
+- `network` is the numbers on top (section 6.5). `position`, `recordHash`
+  and `leader` are null too for a sweep with no voters.
+- `problems` lists every active validator whose shown state is not `good`,
+  red before amber, then by id. Red is the states 1 to 4 of section 6.3.
+- `validators` has one entry for each registry row, in id order. `state`
+  and `since` are what the screen shows (section 6.4). The fields under
+  `doorman`, `worker` and `keyholder` are the newest sweep's, the ones
+  the two tables in section 5 name. `doorman` is null when port 3000 gave
+  no answer, and `reason` is the short reason then. `worker` and
+  `keyholder` are null when there was none. `keyholderUp` is null for a
+  row with no keyholder check.
+- An inactive row has its `id`, `"active": false`, `"state": "notActive"`,
+  and nothing else.
+- An active row the newest sweep did not ask, one that turned active
+  since, has its `id`, `"active": true`, its `address`, and null in every
+  other field, until the next sweep.
+- `software`: for each of the three programs the usual commit, how many
+  run it, GitHub main's newest commit, and whether GitHub's begins with
+  the usual one. `main` is 40 characters, or null until a read worked.
+  `readAt` is the oldest of the three reads from GitHub, and null until
+  all three have worked once.
+- `registry`: `hash`, `rows`, `active` and `fetchedAt` are the registry
+  read from GitHub main. `usual` is the hash most validators report, or
+  null. `same` says whether the two are the same.
+
+Every time is in UTC, as an ISO text. A hash is whole, 64 characters; the
+page will cut it.
+
+`GET /api/validators/:id/history`, signed in. The validator's last ten
+rows of `validator_states`, newest first:
+
+```json
+{ "history": [
+  { "state": "notCounted", "detail": "position 639, the network 639",
+    "startedAt": "2026-11-17T14:02:40.000Z", "endedAt": null },
+  { "state": "good", "detail": "",
+    "startedAt": "2026-11-15T17:10:12.000Z", "endedAt": "2026-11-17T14:02:40.000Z" }
+] }
+```
+
+`endedAt` is null for the state the validator is in now. An id with no
+rows answers an empty list.
+
 ## Notes
 
 Every choice the build made where the plan is silent.
@@ -596,3 +865,148 @@ The app:
 - Any path but `/api/health` gets Express's own 404 for now.
 - `lastSweepAt` is the start of the newest sweep, also when that sweep
   reached nobody.
+
+### Step 2 (2026-11-17)
+
+The checks:
+
+- `decodeBase64Url` came over from the masterpod's file with the two
+  checks: a sign-in finds its passkey by the assertion's id, which
+  arrives as base64url. The two PRF helpers did not come.
+- The library's reason for a refused passkey can quote what the request
+  carried. It goes to the log on one line, cut at 200 characters.
+- A new passkey's credential id must be 16 to 1023 bytes, what WebAuthn
+  allows. The masterpod's own routes check a new passkey the same way.
+  Another length is `passkey verification failed`. The `passkeys` table
+  has no such check.
+
+The challenges:
+
+- A challenge is used the first time a request brings it, also when that
+  request is then refused: because the challenge was handed out for
+  another purpose, or by the passkey check. A request that is refused for
+  its shape or its label before the challenge is looked at does not use
+  it.
+- The challenges past their five minutes are forgotten when the next one
+  is handed out. They have no clock of their own.
+- The user handle is kept with an `add` challenge too. Nothing reads it
+  there.
+
+The session:
+
+- The SHA-256 is taken over the 32 bytes, not over their base64url text.
+- `expires_at` is now plus `SESSION_DAYS` times 86400 seconds, the same
+  number as the cookie's `Max-Age`.
+- The `Set-Cookie` line is written by hand, with the attributes of
+  section 9.3 and no others. Express's own helper would add `Expires`.
+- When a request carries more than one cookie named `monitor_session`,
+  the first counts. A value that is not 43 base64url characters is no
+  session, and the database is not asked.
+- Each request that needs the session reads `sessions` once. No session
+  is kept in memory.
+- Signing in while signed in starts one more session. The row before it
+  stays until its time, or its own sign-out.
+- The hourly delete logs a failure and goes on, as a read of the registry
+  does. It prints nothing when it works.
+
+The routes:
+
+- The answers where the plan names none: `create` 201
+  `{ "signedIn": true }`; `sign-in` `{ "signedIn": true }`; `add` 201
+  `{ "id" }`; the list `{ "passkeys": [...] }`, oldest first, the mark
+  called `thisSession`; a removal `{ "removed": true }`; `sign-out`
+  `{ "signedIn": false }`; the history `{ "history": [...] }`.
+- The statuses and phrases of the refusals where the plan names none are
+  the table in section 9.4. `unknown or expired challenge` and
+  `passkey verification failed` are the masterpod's, with its status 401.
+- "Is there an owner" is "is there a passkey" for `create`, for `signIn`
+  and in `GET /api/session`, never "is there an `owner` row". Only the
+  `add` challenge reads the `owner` row, for its handle. A missing row
+  there, which only a hand in psql can cause, is 409 `no owner yet`.
+- The `exclude` of a `create` challenge is always empty, and the table is
+  not read for it. So a `create` challenge never carries a passkey's id
+  to a stranger, also when the owner's passkey is made in the same
+  moment.
+- The transaction of `create` that only one request at a time can be in
+  begins with `LOCK TABLE passkeys IN EXCLUSIVE MODE`. A removal begins
+  the same way, so two removals at once cannot empty the list between
+  them.
+- The `owner` row is written with `ON CONFLICT ... DO UPDATE`. After the
+  list was emptied on the server, the row from before is still there. It
+  takes the new handle and a new `created_at`.
+- `create` leaves `last_used_at` null. Only a sign-in sets it.
+- The two writes of a sign-in run in one transaction. A passkey that was
+  removed between the check and the write is `unknown passkey`.
+- `add` writes with `ON CONFLICT (credential_id) DO NOTHING`. A passkey
+  that is in the list already is 409.
+- `add` takes no lock. A request that was signed in the moment before
+  `delete from passkeys` ran on the server can still write its passkey
+  after it. The page then says "Sign in" where it should offer the
+  owner's passkey, and the line is run once more.
+- `create` and `add` check in this order: the shape, the label, the
+  challenge, the registration.
+- A label's length is counted in characters, as the database counts them.
+  A label with a zero character in it is refused like one of the wrong
+  length: the database cannot hold it. Nothing else is checked.
+- The passkey a session signed in with can be removed, unless it is the
+  last. That ends the session: the next request answers 401. The cookie
+  is not cleared.
+- A DELETE for an id that is not a number is 404 `unknown passkey`, like
+  one for a number that is not in the list.
+- The door logs one line when a passkey is made, added or removed, and at
+  every sign-in. A sign-out logs nothing.
+
+The app:
+
+- The headers go on every answer, also on a refusal, a 404 and a 500.
+- The Origin rule runs before the body is read. A request with no
+  `Origin` header goes on.
+- A path no route answers is 404 as JSON, also outside `/api`, until step
+  3 hands out the build. Express's own 404 would put its own
+  Content-Security-Policy in place of the one in section 9.6.
+- An error is answered by the app's own handler, for the same reason. One
+  that carries a status from 400 to 499 comes from reading the request (a
+  body that is too long or is not JSON, a path that cannot be decoded),
+  and is answered with that status and `bad request`. Anything else is
+  500, with one log line that names the route and carries the error.
+- The 64 KB and the headers sit in `server/app.js`, the challenges' five
+  minutes and 200 in `server/auth/challenges.js`: each beside the one
+  place that uses it, not in `server/config.js`.
+
+The overview:
+
+- Where nothing is known yet the answer keeps the plan's shape, with
+  null: section 10 says where. `reachedNobody` and `stale` are false
+  before the first sweep.
+- After a start the shown states are in memory at once, but the overview
+  reads the newest sweep, which is there when the first sweep has ended.
+  So for the first seconds after a start no tile has a state.
+- `address` is the registry row's address.
+- An inactive row carries its `id` beside the two fields the plan names:
+  the tile shows the number.
+- The colours are not in the sweep's files.
+  `server/overview/overview.routes.js` names the four red states, for the
+  order of `problems`.
+- The registry in use decides which rows there are and which are active.
+  For up to a minute after a registry change, `network.active` can still
+  be the count of the sweep before it.
+- `software.readAt` is the oldest of the three reads from GitHub, so "not
+  read since" holds for all three. It is null until all three have worked
+  once.
+- `same` under `registry` is false while the usual hash is not known, as
+  `same` under `software` is while a commit is not.
+- Hashes and GitHub's commits are whole. The page cuts them.
+- The history does not look the id up in the registry. A validator that
+  left the registry still has its history, and a number no validator ever
+  had answers an empty list. An id that is not a whole number above 0,
+  of nine digits at most, is 404 `unknown validator`.
+- The history's read sits in `server/overview/overview.routes.js`, beside
+  its route. `server/sweep/history.js` is as step 1 left it.
+
+Other files:
+
+- `server/index.js` starts the hourly delete of the sessions that are
+  past their time, after the tables are made, and stops it at a shutdown.
+- `README.md`: the paragraph that says how far the build is.
+- `db/schema.sql`, `server/config.js` and the sweep's files are as step 1
+  left them. No package was added.

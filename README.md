@@ -19,8 +19,10 @@ The plan it is built from is `forclaude/monitor-plan-1.md`, beside the
 repositories. The record is `docs/schemas.md`: the settings, the tables,
 the states and the rules.
 
-So far the server sweeps and logs. Nothing shows the result yet: the
-sign-in, the overview and the page come with the next steps of the plan.
+So far the server sweeps, logs, and answers what the page will ask: the
+sign-in by passkey and the overview (`docs/schemas.md`, sections 9 and
+10). Nothing shows the result yet: the page comes with the next step of
+the plan.
 
 ## Running it on this machine
 

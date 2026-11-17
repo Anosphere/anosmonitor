@@ -1,4 +1,5 @@
 import { createApp } from './app.js';
+import { startSessionCleanup, stopSessionCleanup } from './auth/sessions.js';
 import { config } from './config.js';
 import { closePool } from './db/pool.js';
 import { applySchema } from './db/schema.js';
@@ -8,8 +9,9 @@ import { startSweeps, stopSweeps } from './sweep/sweep.js';
 
 /**
  * The start, in this order: the settings (the import of config.js), the
- * tables, the registry, the sweeps, then the listen on PORT (4400 by
- * default), on loopback. It says where everything is.
+ * tables, the sessions that are past their time deleted, the registry, the
+ * sweeps, then the listen on PORT (4400 by default), on loopback. It says
+ * where everything is.
  *
  * A database that cannot be reached stops the start, so a wrong setting
  * fails loudly here and not at the first sweep. On monitor1 systemd starts
@@ -33,6 +35,10 @@ try {
   console.error(`Could not apply db/schema.sql to ${database}: ${messageOf(err)}`);
   process.exit(1);
 }
+
+// The door: the sessions that are past their time are deleted now, and once
+// an hour from here on.
+startSessionCleanup();
 
 // The registry: the kept copy now, GitHub's file right after and every
 // GITHUB_MINUTES. The newest commits on GitHub main, on the same clock.
@@ -70,6 +76,7 @@ async function shutdown(signal) {
   stopSweeps();
   stopGithub();
   stopRegistry();
+  stopSessionCleanup();
   console.log(`\n${signal} received, shutting down...`);
 
   // Safety net: never hang forever if a connection refuses to close.
