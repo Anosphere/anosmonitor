@@ -4,7 +4,7 @@ The settings, the tables, the states and the rules of the monitor, and at
 the end the notes: every choice the build made where the plan is silent.
 
 Built from `~/Desktop/Z-TestNet/forclaude/monitor-plan-1.md` (FINAL,
-2026-11-17), in that plan's four steps. Sections 1 to 7, 9 and 10 carry
+2026-11-17), in that plan's four steps. Sections 1 to 7 and 9 to 11 carry
 the plan's own numbers, so "section 6.3" means the same here and there.
 The plan's section 8, what cannot be seen from outside, holds nothing
 that is built, so this file has no section 8.
@@ -24,6 +24,17 @@ page will ask, and there is no page yet. Checked with `node --check` on
 every file under `server/`, and with nothing else: the server was still
 not started, no database was made, and no passkey was ever checked.
 
+**Step 3, the page, 2026-11-17.** The Angular packages, the settings of
+the build, everything under `src/`, and the server handing out the build.
+After this step the monitor has its screen: the sign-in by passkey, the
+overview and the passkeys. Checked with `node --check` on every file
+under `server/` and with `npx ng build`, which ended without an error or
+a warning. A second reader then read the page against the server's
+routes, and ran the page's three small helpers (times, hex, base64url)
+once, in one line of Node. With nothing else: the server was still not
+started, no database was made, `ng serve` was not run, and no browser
+has shown the page. The first look is the operator's.
+
 ## 1. The project
 
 A small server of its own asks every doorman's public `/health` once a
@@ -36,11 +47,12 @@ The files so far:
 monitorsoftware/
   README.md  LICENSE  .gitignore
   package.json  package-lock.json
+  angular.json  tsconfig.json  tsconfig.app.json  proxy.conf.json
   db/schema.sql                       the tables
   server/
     index.js                          the start: settings, schema, registry, sweeps, listen
     config.js                         the settings, each with a local default
-    app.js                            the Express app: headers, routes
+    app.js                            the Express app: headers, routes, the Angular build
     db/pool.js  db/schema.js          the pool; applying db/schema.sql at the start
     registry/registry.js              reading, checking, hashing and keeping the registry
     sweep/ask.js                      one GET with the time limit and the size limit
@@ -54,15 +66,35 @@ monitorsoftware/
     auth/sessions.js                  the cookie and the sessions table
     auth/auth.routes.js               /api/session, /api/passkey/..., /api/passkeys, /api/sign-out
     overview/overview.routes.js       /api/overview, /api/validators/:id/history
+  src/                                the Angular app (section 11)
+    index.html  main.ts               the page's one HTML file; the start
+    styles.css  material-theme.scss   the page's own styles and its four colours; the Material theme
+    app/app.ts  app.html  app.css     the shell: the bar on top, the page under it
+    app/app.config.ts  app.routes.ts  what the app is made with; the three routes
+    app/session.guard.ts              sends a visitor who is not signed in to /sign-in
+    app/pages/sign-in/                sign-in.page.ts, .html, .css
+    app/pages/overview/               overview.page.ts, .html, .css
+                                      validator-details.component.ts, .html, .css
+                                      parts.component.ts
+    app/pages/passkeys/               passkeys.page.ts, .html, .css
+    app/services/api.service.ts       the calls to the server, and the shape of every answer
+    app/services/passkey.service.ts   the two passkey calls
+    app/words.ts                      every sentence the page shows
   docs/schemas.md                     this file
 ```
 
 `package.json`: name `monitor`, private, `"type": "module"`, license
 Apache-2.0, the wallet's three scripts (`start` = `ng serve`, `build` =
-`ng build`, `server` = `node server/index.js`). The packages so far are
-the server's four, at the versions the other projects hold: `express`
-5.3.0 (the wallet's), `pg` 8.23.1, `canonicalize` 5.1.0 and
-`@simplewebauthn/server` 14.0.3 (the masterpod's).
+`ng build`, `server` = `node server/index.js`). The server's four
+packages, at the versions the other projects hold: `express` 5.3.0 (the
+wallet's), `pg` 8.23.1, `canonicalize` 5.1.0 and `@simplewebauthn/server`
+14.0.3 (the masterpod's). Since step 3 the page's too: the Angular,
+Material, CDK, rxjs and tslib entries of the wallet's `package.json` and
+its five dev dependencies, each with the wallet's own version range. The
+lock file holds them at the versions the wallet's lock file holds:
+Angular 22.2.3, Material and CDK 22.2.4, the Angular CLI and its build
+package 22.2.4, rxjs 7.8.2, TypeScript 6.0.3, prettier 3.9.10. One
+differs: tslib is 2.9.1 here and 2.8.1 in the wallet (Notes, Step 3).
 
 The start (`server/index.js`), in order: the settings; `db/schema.sql`
 applied; the sessions that are past their time deleted; the registry (the
@@ -472,9 +504,9 @@ line.
 A validator reports a short commit. It is "the newest on GitHub main" when
 GitHub's 40 characters begin with it.
 
-The page's sentences will be built from, for each of the three programs:
-the usual commit, how many run it, GitHub's newest commit or null, and
-whether the two are the same (`softwareLine(usual)`).
+The page's sentences (section 11.4) are built from, for each of the three
+programs: the usual commit, how many run it, GitHub's newest commit or
+null, and whether the two are the same (`softwareLine(usual)`).
 
 During a pull round this line and the amber "Other software" tiles are the
 tick sheet: the tiles turn as each banker pulls.
@@ -575,8 +607,8 @@ that challenge, and written to `owner` when the first passkey is. An `add`
 challenge carries the handle of the `owner` row. So every passkey of the
 owner has the same handle, and a phone lists them as one account.
 
-A label is 1 to 40 characters after trimming. The page will send `Owner`
-for the first passkey and ask for a label when one is added.
+A label is 1 to 40 characters after trimming. The page sends `Owner` for
+the first passkey and asks for a label when one is added.
 
 A refusal is `{ "error": "<a short phrase>" }` with its status:
 
@@ -592,7 +624,7 @@ A refusal is `{ "error": "<a short phrase>" }` with its status:
 | 403 | `origin not allowed` | a POST or DELETE from another origin |
 | 404 | `unknown passkey` | a DELETE for an id that is not in the list |
 | 404 | `unknown validator` | a history for an id that is not a whole number above 0 |
-| 404 | `Not Found`, with `"path"` | a path no route answers |
+| 404 | `Not Found`, with `"path"` | a path under `/api` that no route answers; any other path asked for with another method than GET or HEAD |
 | 409 | `the owner exists already` | `create` while there is a passkey |
 | 409 | `no owner yet` | `signIn` while there is no passkey; `add` while there is no `owner` row |
 | 409 | `this passkey is in the list already` | `add` with a passkey that is there |
@@ -611,9 +643,10 @@ passkey check failed at sign-in: <the library's reason>
 
 ### 9.5 What a stranger gets
 
-Whether there is an owner, a challenge, and `GET /api/health`. From step 3
-on also the sign-in page and the Angular files, which hold no data. Every
-answer with data needs the session. A person who breaks into monitor1
+Whether there is an owner, a challenge, and `GET /api/health`. Also the
+sign-in page and the Angular files, which hold no data: the server hands
+the build out to anyone (section 11). Every answer with data needs the
+session. A person who breaks into monitor1
 gets the public keys of the owner's passkeys, the session hashes and a
 history of public facts. Nothing on monitor1 opens anything else.
 
@@ -633,9 +666,19 @@ X-Robots-Tag: noindex, nofollow
 and `Cache-Control: no-store` on every answer under `/api`.
 
 `'unsafe-inline'` for styles is what Angular Material needs. The two
-Google hosts are the fonts the page will load. For `script-src 'self'` to
-hold, the page's build must write no script into the page itself. That is
-a setting of `angular.json`, which comes with step 3.
+Google hosts are the fonts the page loads. For `script-src 'self'` to
+hold, the page's build must write no script into the page itself. So the
+production configuration in `angular.json` sets
+`"optimization": { "scripts": true, "styles": { "minify": true, "inlineCritical": false }, "fonts": true }`:
+with `inlineCritical` on, Angular writes a small script into the page
+that this header would block, and the styles would not load. The built
+`index.html` holds one script tag, which names the build's own file, and
+no script of its own.
+
+The headers go on the build's files too. `ng serve` does not set them:
+only the page the server itself hands out runs under them.
+
+The page shows what the validators answer as text only, never as HTML.
 
 ## 10. The overview
 
@@ -715,7 +758,7 @@ asking often costs nothing.
   null. `same` says whether the two are the same.
 
 Every time is in UTC, as an ISO text. A hash is whole, 64 characters; the
-page will cut it.
+page cuts it.
 
 `GET /api/validators/:id/history`, signed in. The validator's last ten
 rows of `validator_states`, newest first:
@@ -731,6 +774,313 @@ rows of `validator_states`, newest first:
 
 `endedAt` is null for the state the validator is in now. An id with no
 rows answers an empty list.
+
+## 11. The page
+
+Angular 22 with Material, standalone components and signals, set up as
+the wallet is: the two `tsconfig` files and the theme file
+`src/material-theme.scss` are the wallet's own, and `angular.json` and
+the font links of `src/index.html` follow the wallet's (Notes, Step 3).
+The page is in English only, and it fits a phone.
+
+- The project's name is `monitor`. `npx ng build` puts the build into
+  `dist/monitor/browser`, which is `DIST_DIR`.
+- `server/app.js` hands the build out, behind the routes: its files, and
+  its `index.html` for any other GET, so the page's own paths load, also
+  after a reload. A path under `/api` that no route answers is 404 as
+  JSON before the build is looked at. With no build in the folder, the
+  answer is 404 `no build at <folder>: run npm run build`, as plain text.
+- `ng serve` listens on port 4210 (`angular.json`) and sends `/api` to
+  `http://localhost:4400` (`proxy.conf.json`). It leaves the `Origin`
+  header as the browser sent it, and `http://localhost:4210` is in the
+  default `WEB_ORIGIN`.
+
+Every sentence the page shows is in `src/app/words.ts`. A sentence with a
+number, a time or a name in it is a function there. The server gives a
+state's key, never a colour or a sentence: the sentences are in
+`words.ts`, the colours in `src/styles.css`.
+
+Every time on the screen is in UTC. A moment on today's UTC day shows its
+time alone, `18:25:40 UTC`. One on another day carries the day in front,
+`15 Nov 18:25:40 UTC`, and one of another year the year too. How long
+something has lasted is a whole number, rounded down: minutes under an
+hour, hours under two days, then days; under a minute it reads `less than
+a minute`. A commit is cut at 7 characters and a hash at 8. A value that
+is not known shows a dash.
+
+The page's scripts ask nothing but the monitor's own server; the fonts
+come from Google's two hosts. The page shows what the validators answer
+as text only, never as HTML.
+
+### 11.1 The routes
+
+| path | page | who |
+|---|---|---|
+| `/sign-in` | the sign-in page | anyone |
+| `/` | the overview | signed in |
+| `/passkeys` | the passkeys | signed in |
+
+Any other path leads to `/`.
+
+`src/app/session.guard.ts` stands in front of the two pages that need the
+session. It asks `GET /api/session` and sends a visitor who is not signed
+in to `/sign-in`. A server that does not answer counts as not signed in.
+
+An answer 401 `not signed in` from any call sends the page to `/sign-in`
+too (`src/app/services/api.service.ts`). The door's other 401s (a
+challenge that is used or too old, a passkey the server does not know or
+does not accept) are refusals of that one request: the page that made it
+shows their line and stays.
+
+The shell (`src/app/app.html`) is a bar on top and the page under it. The
+bar has the title, which is a link to the overview, and on the right a
+menu with "Passkeys" and "Sign out". It shows only while the browser is
+signed in, so the sign-in page stands alone. "Sign out" asks
+`POST /api/sign-out` and goes to `/sign-in`.
+
+`src/app/services/api.service.ts` has one method for each route of
+section 9.4 and the two of section 10. A call never throws over an
+answer: it gives the answer's body, or the refusal's status and the
+server's phrase. A call gets 20 seconds; past them it counts as not
+answered, with the status 0, like a server that is down.
+
+### 11.2 The passkey calls
+
+`src/app/services/passkey.service.ts` is the wallet's
+(`web_app/src/app/services/passkey.service.ts`) without PRF and without
+the language service: the two calls of `navigator.credentials`, and its
+helpers `toBuffer`, `asPublicKeyCredential`, `toJson` and `toBase64Url`
+as they are. `toJson` stays built by hand.
+
+- Making a passkey: `rp` `{ name: "anos monitor", id: rpId }`; `user`
+  `{ id: <the user handle>, name: "owner", displayName: "Monitor owner" }`;
+  the challenge; ES256 and RS256; `residentKey` `required`,
+  `userVerification` `required`; `attestation` `none`;
+  `excludeCredentials` from `exclude`; two minutes.
+- Signing in: the challenge, `rpId`, `userVerification` `required`, two
+  minutes. No list of allowed passkeys: the phone offers the one it has.
+
+The challenge, `rpId`, the user handle and `exclude` come from
+`POST /api/passkey/challenge`. The challenge and the user handle are hex
+and become bytes; each id in `exclude` is base64url and becomes bytes.
+The two small helpers for that are written by hand in the same file.
+
+Every press of a button asks for a new challenge.
+
+### 11.3 The sign-in page
+
+`src/app/pages/sign-in/`. The title "Validator monitor" and one button.
+What the button says comes from `GET /api/session`:
+
+| the server says | the button | under it |
+|---|---|---|
+| no owner yet | Make the owner's passkey | The first passkey made here is the owner's. After that, this page only signs in. |
+| an owner exists | Sign in | |
+| nothing: it did not answer | Try again | the failure's line |
+
+A browser that is signed in already goes on to the overview.
+
+- "Make the owner's passkey": a `create` challenge, the passkey call,
+  `POST /api/passkey/create` with the label `Owner`.
+- "Sign in": a `signIn` challenge, the passkey call,
+  `POST /api/passkey/sign-in`.
+- "Try again": asks `GET /api/session` once more.
+
+A failure shows one line under the button, above the note. After a
+sign-in the page goes to the overview. A refusal 409 means that the door
+is not as the page showed it (an owner's passkey was made meanwhile, or
+the list was emptied on the server): the page asks `GET /api/session`
+again, and the button follows.
+
+The guard in front of the overview asks the server once more whether the
+browser is signed in. When it does not find the session right after a
+sign-in, the page is still the sign-in page. It then asks
+`GET /api/session` itself and says why: the server does not answer, or
+the browser did not keep the session's cookie.
+
+The failure lines, here and on the passkeys page:
+
+| what happened | the line |
+|---|---|
+| nothing came back, or a status from 502 up | The monitor's server does not answer. |
+| 401 `unknown or expired challenge` | That took too long. Press the button again. |
+| 401 `unknown passkey` | This passkey is not one of the owner's. |
+| 401 `passkey verification failed` | The server did not accept this passkey. |
+| 401 `not signed in` | You are not signed in any more. |
+| 403 `origin not allowed` | The server takes no requests from this address. |
+| 404 `unknown passkey` | That passkey is not in the list any more. |
+| 409 `the owner exists already` | The owner's passkey exists already. Sign in with it. |
+| 409 `no owner yet` | The server holds no passkey. The first one made is the owner's. |
+| 409 `this passkey is in the list already` | This passkey is in the list already. |
+| 409 `the last passkey stays` | The last passkey stays. |
+| 400 `the label must be 1 to 40 characters` | A label has 1 to 40 characters. |
+| any other refusal | The monitor's server answered with an error (HTTP 500). |
+| a sign-in went through, and the next answer says "not signed in" | The sign-in went through, but this browser did not keep it. It has to accept the monitor's cookie. |
+| the passkey call: `NotAllowedError` (cancelled, timed out, not allowed) | No passkey was used. Press the button to try again. |
+| the passkey call: `InvalidStateError` (the device holds one already) | This device holds one of the owner's passkeys already. |
+| the passkey call: anything else | "The passkey did not work:", then the browser's own message |
+
+### 11.4 The overview
+
+`src/app/pages/overview/`. From top to bottom:
+
+1. The shell's bar: the title, and on the right the menu with "Passkeys"
+   and "Sign out".
+2. Four cards: "Validators counted" with `25 of 25` and under it "Floor
+   is 13"; "Keyholders up" with `25 of 25`; "Chain position"; "Leader".
+   Four in a row, two on a phone.
+3. The problem line, or the line that stands in its place.
+4. The tiles, one for each registry row, in id order: the number, and
+   under it what the tile says (section 6.3). Five in a row on a wide
+   screen, four under 840 pixels, three under 600. The tile's colour is
+   its state's. The tapped tile has a stronger border.
+5. The details of the tapped tile (section 11.5).
+6. The software line and the registry line.
+
+The page asks `/api/overview` when it opens and every 15 seconds after.
+
+The colours:
+
+| colour | what |
+|---|---|
+| red | the states 1 to 4 of section 6.3 |
+| amber | the states 5 to 10 |
+| green | `good` |
+| grey | `notActive`; a row no sweep has judged yet, which says a dash |
+
+The line under the cards is the first of these that fits:
+
+| # | when | the line | colour |
+|---|---|---|---|
+| 1 | the page's newest ask got no answer, or a refusal | the failure's line (section 11.3), then "This screen is from 18:26:10 UTC." | red |
+| 2 | `registryRead` is false | No registry read yet. | grey |
+| 3 | `sweptAt` is null | The first sweep is running. | grey |
+| 4 | `reachedNobody` | The monitor reached no validator in its last sweep. Its own connection may be down. | red |
+| 5 | `stale` | The monitor has not swept since 18:25:40 UTC. | red |
+| 6 | no problems | No problems. Last sweep 18:25:40 UTC. | green |
+| 7 | problems | the sentences of up to three problems, the worst first, then "And 2 more." when there are more, then "Last sweep 18:25:40 UTC." | red when a red state is among the problems, else amber |
+
+In case 1 the rest of the screen stays as the last answer left it. Before
+the first answer the page shows a moving bar and nothing else.
+
+The problem sentences, with N the validator's id:
+
+| state | sentence |
+|---|---|
+| `noAnswer` | Validator N does not answer. |
+| `validatorDown` | Validator N: the doorman answers, the validator behind it does not. |
+| `databaseDown` | Validator N: its database does not answer. |
+| `notCounted` | Validator N answers but is not counted. |
+| `votedOut` | Validator N is voted out by the others. |
+| `outOfStep` | Validator N is out of step with the others. |
+| `certificate` | Validator N: its certificate ends in 1.4 days. Or: Validator N has no certificate. Or, when the doorman did not answer the newest sweep: Validator N: its certificate needs a look. |
+| `otherSoftware` | Validator N runs other software than most. |
+| `otherRegistry` | Validator N has another registry than most. |
+| `keyholderDown` | Validator N: its keyholder does not answer. |
+
+The tapped tile. At the start it is the first problem's, or the first
+row's when there is no problem. The page chooses once, at the first
+answer that carries a sweep. After that only a tap changes it, unless the
+tapped row has left the registry: then the page chooses again.
+
+The software line is put together from `software` and `network.active`:
+
+- What runs: "Software: all 25 run validator `6b27427`, doorman
+  `4cfade2` and keyholder `6d4b89c`". "All 25" stands when all three
+  commits are known and each `running` is `network.active`. Else it
+  reads "most run"; the validators that run something else show as amber
+  tiles. A commit that is not known shows a dash. When no commit is known
+  at all, this sentence is left out.
+- GitHub was read, and all three are the newest: the sentence ends ",
+  the newest on GitHub main."
+- GitHub was read, and it is ahead for a program: the sentence ends with
+  a full stop, then "GitHub main is newer for the validator: `1a2b3c4`.",
+  one such sentence for each program whose commit is known and whose
+  `same` is false.
+- GitHub was not read: the sentence ends with a full stop, then "GitHub
+  was not read since 18:20 UTC.", or "GitHub was not read yet." while
+  `software.readAt` is null. GitHub counts as not read when
+  `software.readAt` is null or more than 30 minutes old.
+- Nothing of all this can be said: "Software: –".
+
+The registry line: "Registry: 25 active rows. The validators applied the
+registry on GitHub main (`1076ef27`)." When the two differ, the second
+sentence is "GitHub main's registry (`9f8e7d6c`) is not the one most
+validators applied (`1076ef27`)." While `registry.usual` is null, the
+second sentence is left out. While `registry` is null the line reads
+"Registry: –".
+
+### 11.5 The details of one validator
+
+`src/app/pages/overview/validator-details.component.ts`. A card under the
+tiles, with the title "Validator 24" and a label and a value in each row.
+On a phone the label stands over its value.
+
+| row | value |
+|---|---|
+| State | what the tile says, then when it began and how long it has lasted: "Not counted since 14:02 UTC, 2 hours" |
+| (the help line) | only for "Not counted", under the state, see below |
+| Chain position | the position and the first 8 characters of the record hash: `639 (5efff567)` |
+| Leader it names | the id |
+| Counted | yes or no |
+| Ignores | the ids, or "nobody" |
+| Validator running for | from the worker's uptime |
+| Database answer | milliseconds, as a whole number: `17 ms` |
+| Doorman running for | from the doorman's uptime |
+| Certificate | days left, and the day it ends: `4.5 days left, ends 22 Nov`; "no certificate" when the doorman answered and has none |
+| Answer time | milliseconds: `413 ms`; when port 3000 gave no answer, the short reason: `no answer: timeout` |
+| Software | the three commits: `validator 6b27427, doorman 4cfade2, keyholder 6d4b89c` |
+| Registry | the registry the doorman read, with its count of active rows, and the one the validator applied: `doorman 1076ef27, 25 active; validator 1076ef27` |
+| Keyholder | Up or Down, running for, shares waiting: `Up, running for 4 days, 0 shares waiting` |
+| Address | the registry address |
+| Earlier | the last ten states with their times, from `/api/validators/:id/history` |
+
+The state and its time, and Up or Down, are what the screen shows (the
+two-sweep rule). Every other row is the newest sweep's.
+
+A value that is not known shows a dash: a field the answer did not
+carry; the validator's rows when the doorman answered alone; the
+doorman's and the validator's rows when port 3000 gave no answer; and
+every row but the state of a registry row that is not active.
+
+The help line for "Not counted": "If it stays this way for some minutes,
+the banker restarts the program on the worker:
+`sudo systemctl restart anos-validator`. While it stands at the network's
+chain position and is not counted, nothing can land."
+
+Earlier is the list as the route gives it, newest first, the state the
+validator is in now included: "Not counted since 14:02 UTC" for that one,
+"Counted, 15 Nov 17:10 UTC to 14:02 UTC" for one that ended. Under each,
+in smaller letters, its detail line when it has one. The page reads the
+history when a tile is tapped, and again when the tapped validator's
+state has changed.
+
+### 11.6 The passkeys page
+
+`src/app/pages/passkeys/`. The title "Passkeys", and under it the link
+"Back to the overview".
+
+The list of passkeys, oldest first: the label; the mark "This browser
+signed in with it" on that one; "Added 17 Nov 2026 14:02 UTC, last used
+17 Nov 2026 18:20 UTC", or "Added 17 Nov 2026 14:02 UTC, not used since"
+for one that has not signed in since it was added. The times carry their
+day and year always.
+
+The page reads the list when it opens, and again after a passkey was
+added or removed.
+
+"Add a passkey" opens a text box for the label, with "Make the passkey"
+and "Cancel". The label is checked on the page before the passkey call: 1
+to 40 characters after trimming. Then an `add` challenge, the passkey
+call, `POST /api/passkey/add`, and the list is read again.
+
+Each row has "Remove". A press makes the row ask once: `Remove "Phone"?`
+with "Yes, remove" and "Keep". For the passkey this browser signed in
+with, the question adds that the browser will be signed out. "Yes,
+remove" asks `DELETE /api/passkeys/:id` and reads the list again. The
+last passkey has no "Remove".
+
+A failure shows one line under the list (section 11.3).
 
 ## Notes
 
@@ -1010,3 +1360,280 @@ Other files:
 - `README.md`: the paragraph that says how far the build is.
 - `db/schema.sql`, `server/config.js` and the sweep's files are as step 1
   left them. No package was added.
+
+### Step 3 (2026-11-17)
+
+The packages:
+
+- npm ran once, as `npm install --before=2026-10-27T05:39:46Z`. That is
+  the moment the wallet's lock file was written. A plain install on
+  2026-11-17 takes newer versions than the wallet holds: Angular 22.2.6,
+  Material and CDK 22.2.7, the Angular CLI 22.2.7, prettier 3.10.1. With
+  the date, npm took the wallet's versions for every package that
+  `package.json` names. `package.json` carries the wallet's own version
+  ranges.
+- tslib is the one that differs: 2.9.1 here, 2.8.1 in the wallet's lock
+  file. Step 1's lock file held 2.9.1 already, for the packages the
+  passkey library brings along, and the page takes the same copy. No
+  line of step 1's lock file moved: its 105 entries are as they were,
+  `@simplewebauthn/server` 14.0.3 among them.
+- The step added 347 entries to the lock file. Every one is a package
+  the wallet's lock file holds too. 320 are at the wallet's version. 27
+  are one patch newer: the 23 `@inquirer` packages the Angular CLI asks
+  its questions with, and `browserslist`, `electron-to-chromium`,
+  `postcss` and `sync-child-process`.
+- npm ended with a notice that four packages (`esbuild`, `lmdb`,
+  `msgpackr-extract`, `@parcel/watcher`) have install scripts "not yet
+  covered by allowScripts". Nothing was approved and no setting was
+  changed. The build runs.
+
+The build's settings:
+
+- `angular.json` is the wallet's with four changes: the project's name
+  `monitor`; port 4210 for `ng serve`; the `optimization` value of
+  section 9.6 in the production configuration; and no `assets` entry,
+  because the monitor has no `public` folder.
+- `"fonts": true` in that value makes the build read the two font style
+  sheets from `fonts.googleapis.com` while it builds, and write them
+  into `index.html`. So the machine that builds must reach that host; a
+  build that cannot reach it ends with an error. The wallet's build
+  does the same.
+- The page has no icon: no `public` folder, no icon file, no icon link in
+  `src/index.html`. A browser that asks for `/favicon.ico` gets the
+  page's `index.html`, cannot use it, and shows its own blank icon.
+- `tsconfig.json` and `tsconfig.app.json` are the wallet's, byte for
+  byte. There is no `tsconfig.spec.json`: the monitor has no test files,
+  and `angular.json` has no test target.
+- `proxy.conf.json` is the wallet's with the port 4400. The target is
+  `http://localhost:4400`, as the plan has it, and the server listens on
+  127.0.0.1 only. Node tries both addresses of `localhost`, so the two
+  meet.
+- No `.editorconfig`, no `.prettierrc` and no `.vscode` folder: the
+  plan's layout names none.
+- `src/material-theme.scss` and `src/main.ts` are the wallet's, byte for
+  byte. `src/index.html` is the wallet's with the monitor's title and
+  without the icon link. `src/styles.css` has the wallet's rules for the
+  page, for `code` and for the class `danger`, and the four colours.
+- Each of the four colours is a fill, the ink that is read on it, and a
+  line around it: green `#e6f4ea`, `#0d652d`, `#81c995`; amber
+  `#fef7e0`, `#7a4f01`, `#f2b600`; red `#fce8e6`, `#a50e0e`, `#ee675c`;
+  grey `#f1f3f4`, `#5f6368`, `#bdc1c6`.
+- The title in `src/index.html` is the one sentence that is not in
+  `src/app/words.ts`: the browser shows it before the page's scripts
+  run. The same words stand in `words.ts` for everything after that.
+- Two files under `src/app/pages/overview/` are not in the plan's
+  layout, which names the folder: `validator-details.component.*`, the
+  card of section 11.5, and `parts.component.ts`, which sets a commit, a
+  hash or a command in the code font inside a line.
+
+The shell and the routes:
+
+- The bar is the shell's (`src/app/app.html`), not the overview's own,
+  so the passkeys page has it too. It shows only while the browser is
+  signed in; the sign-in page has no bar and carries the title itself.
+- The menu is a Material menu behind a button with three dots. The title
+  in the bar is a link to the overview.
+- Whether the browser is signed in is kept in the API service
+  (`signedIn`): what the server last said, in `GET /api/session`, after
+  a sign-in, after a sign-out, and with a 401 `not signed in`.
+- The browser's tab reads "Validator monitor" on the sign-in page and
+  the overview, and "Passkeys" on the passkeys page.
+- Any path the page does not know leads to the overview.
+- The guard takes a server that does not answer as not signed in. The
+  sign-in page then says that the server does not answer.
+- The plan says that any answer 401 sends the page to `/sign-in`. Step 2
+  gave three more refusals the status 401: a challenge that is used or
+  too old, a passkey the server does not know, a passkey it does not
+  accept. Those happen on the sign-in page and while a passkey is added,
+  to a browser that may well be signed in. So only the 401
+  `not signed in` sends the page to `/sign-in`; the others show their
+  line.
+- "Sign out" goes to `/sign-in` whatever the server answered. The
+  sign-in page asks `GET /api/session` anew, so it shows what is true.
+  When the server does not answer the sign-out, the browser is still
+  signed in: the session and its cookie are still there. The sign-in
+  page then says that the server does not answer, and the bar stays on
+  top. "Sign out" is pressed again once the server answers.
+- While the guard waits for `GET /api/session`, the page is empty. On a
+  link that takes long, that can last up to the call's 20 seconds.
+
+The calls:
+
+- Every call gets 20 seconds. Past them it counts as not answered. So a
+  screen that is left open says that the server does not answer, and
+  does not wait for ever.
+- The lines for the refusals are the table in section 11.3. A refusal
+  whose phrase the page does not know shows its HTTP status. A status
+  from 502 up reads as a server that does not answer: that is what nginx
+  says when the server behind it is down.
+
+The passkey calls:
+
+- `requireResidentKey: true` stands beside `residentKey: 'required'`, as
+  in the wallet's file. It is the same wish in the older browsers' word.
+- The wallet's two return types went with PRF. Both calls return the
+  credential's JSON alone.
+- The three names the device shows on its own sheet (`anos monitor`,
+  `owner`, `Monitor owner`) and the label `Owner` are in `words.ts`.
+- The wallet takes `hexToBytes` from `@noble/hashes`, which the monitor
+  does not hold. `hexToBytes` and `base64UrlToBytes` are written by hand
+  at the end of the file. A text that is not hex, or not base64url,
+  stops the call with a line.
+- A browser that has no passkeys on the page's address gets a line that
+  says so: a page that is not on https or on `localhost`, or an old
+  browser.
+- The passkey call's own failures are told apart by the error's name:
+  `NotAllowedError`, `InvalidStateError`, and anything else with the
+  browser's own message (section 11.3).
+
+The sign-in page:
+
+- Until `GET /api/session` has answered, the page shows the title and a
+  moving bar, and no button.
+- When the server does not answer, the button says "Try again" and asks
+  `GET /api/session` once more.
+- A browser that is signed in already goes on to the overview.
+- After a refusal 409 the page asks `GET /api/session` again, so the
+  button says what is true.
+- The failure's line stands between the button and the note.
+- The two buttons that use a passkey carry the fingerprint icon, as the
+  wallet's does. "Try again" carries none.
+- The plan does not say what happens when a sign-in goes through and the
+  overview does not open. The guard would send the page to `/sign-in`,
+  where it is already, and nothing would show. So the page asks
+  `GET /api/session` once more and says why (section 11.3). The likely
+  reason is a browser that does not keep the session's cookie.
+- On the operator's own machine the wallet's relying-party id is
+  `localhost` too. So the device's sheet can offer the wallet's test
+  passkeys beside the monitor's. One of those is refused with "This
+  passkey is not one of the owner's."
+- A passkey the device made and the server then refused stays on the
+  device. The page does not say so. It can happen when two people make
+  the owner's passkey in the same moment.
+
+The overview:
+
+- The plan names three lines that stand in place of the problem line.
+  They are tried in the plan's order: no registry, reached nobody, stale.
+- The plan gives those lines no colour. "No registry read yet." and "The
+  first sweep is running." are grey: nothing is wrong, there is nothing
+  to show yet. The other two are red: what the screen shows is old.
+- The plan has no sentence for the seconds between a start and the end
+  of the first sweep. It is "The first sweep is running."
+- The plan does not say what the page does when its own ask fails. The
+  screen stays as it was, and the line turns red: the failure's line,
+  then "This screen is from 18:26:10 UTC.", the time of the last answer.
+  After a 401 `not signed in` the line says so for the moment the page
+  takes to reach `/sign-in`.
+- "and 2 more" is a sentence of its own in the line: "And 2 more."
+- A third sentence for the state `certificate`: "Validator N: its
+  certificate needs a look." It stands when the doorman did not answer
+  the newest sweep while the screen still shows the state. The days are
+  the newest sweep's, and that sweep has none.
+- A card whose number is not known shows a dash. "Floor is 13" is left
+  out while the floor is not known.
+- Five tiles in a row from 840 pixels up, four from 600, three under
+  600. The four cards stand two in a row under 600 pixels.
+- A row no sweep has judged yet has a grey tile that says a dash. A
+  state's key the page does not know shows as the key itself, on a grey
+  tile.
+- The first tile is chosen at the first answer that carries a sweep, not
+  at the first answer: before it no state is known. A tap before that
+  counts. "Validator 1" is the first registry row.
+- When the tapped row has left the registry, the page chooses again by
+  the same rule.
+- The software line. "All 25" stands only when every active validator
+  runs the three usual commits; else the line reads "most run". When
+  GitHub was not read, the first sentence stays and the plan's sentence
+  follows it. The plan's sentence stands alone when no commit is known.
+- The server has no rule for when GitHub's read is too old, and the page
+  does not know `GITHUB_MINUTES`. The page's rule: not read when
+  `software.readAt` is null or more than 30 minutes old. That is three
+  times `GITHUB_MINUTES` at its value of 10, as `stale` is three times
+  `SWEEP_SECONDS`. The number stands in
+  `src/app/pages/overview/overview.page.ts`. A change of the setting
+  does not change it.
+- While `software.readAt` is null the sentence is "GitHub was not read
+  yet.", since there is no time to name.
+- "GitHub main is newer" is said for a program whose `same` is false, as
+  the plan has it. `same` is false too when the validators run a commit
+  that is not on GitHub main at all.
+- The registry line's second sentence is left out while no validator's
+  hash is known.
+- A time that is not on today's UTC day carries its day, and one of
+  another year its year. The plan's examples are all of today.
+- Under an hour a time span is in minutes, and under a minute it reads
+  "less than a minute". The plan has hours under two days, then days.
+  So a validator that was just started reads "3 minutes".
+- "Today", "2 hours" and the 30 minutes are counted on the browser's
+  clock, at the newest ask. A browser whose clock is off shows them off
+  by as much.
+- The sweep's `tookMs` and each row's keyholder answer time are in the
+  answer and are not shown.
+
+The details:
+
+- The help line stands under the state, in the state's row.
+- A registry row that is not active shows "Not active" with no time, and
+  a dash in every other row but Earlier.
+- "Answer time" shows the short reason when port 3000 gave no answer.
+  The plan puts `reason` into the overview and names no row for it.
+- "Registry" shows two hashes: the registry the doorman read, with its
+  count of active rows, and the one the validator applied. The state
+  `otherRegistry` looks at both.
+- "Certificate" reads "no certificate" when the doorman answered and has
+  none, and a dash when the doorman did not answer.
+- "Database answer" and "Answer time" are whole milliseconds. The days of
+  a certificate carry one decimal at most.
+- "Keyholder" leaves out what is not known. Up or Down is what the
+  screen shows; with one bad answer the row can read "Up" alone.
+- "Earlier" is the route's list as it is, so its first entry is the
+  state the validator is in now.
+- The history is read when a tile is tapped and when the tapped
+  validator's state or its start has changed, not with every ask. A
+  read that fails is tried again with the next ask.
+
+The passkeys page:
+
+- "Remove" asks in the row itself, with "Yes, remove" and "Keep". There
+  is no pop-up box.
+- "Add a passkey" opens a text box on the page, with "Make the passkey"
+  and "Cancel". The Enter key in the box does what "Make the passkey"
+  does. The box takes 40 characters at most.
+- The question before the passkey this browser signed in with is removed
+  adds that the browser will be signed out. After the removal the next
+  call is refused with 401, and the page goes to `/sign-in`.
+- The page has the shell's bar, and its own link back to the overview.
+- A passkey that has not signed in reads "not used since", behind
+  "Added ...". Making the owner's passkey signs the browser in and sets
+  no time of use (Notes, Step 2), so right after it the owner's row has
+  the mark "This browser signed in with it" and reads "not used since".
+- The page reads its list when it opens and after each change, not on a
+  clock. When that read fails, its line stays until the page is loaded
+  again.
+
+The server:
+
+- `server/app.js` hands out the build as `web_app/server/app.js` does:
+  the 404 for `/api` first, then the files, then `index.html` for any
+  other GET or HEAD. Two things differ. A request with another method
+  goes on to the app's own 404, which was there already. And
+  `index.html` is sent by its name inside the build's folder, not by its
+  whole path, so a folder on the way whose name starts with a dot does
+  not turn the page into a 404.
+- The build's files go out with Express's own cache line,
+  `public, max-age=0`: the browser asks each time whether its copy is
+  still the newest. The wallet's do the same.
+
+Other files:
+
+- `README.md`: "Running it on this machine" has `ng serve` and
+  `http://localhost:4210`, as the plan has them, and three things more:
+  what the page offers the first time; that the device may offer the
+  wallet's test passkeys for `localhost` too; and `npm run build` with
+  `http://localhost:4400`, the one address where the page runs under the
+  server's headers.
+- `docs/schemas.md`: section 11, and the lines of sections 1, 7, 9.4,
+  9.5, 9.6 and 10 that spoke of the page as still to come.
+- `db/schema.sql`, `server/config.js`, `server/index.js` and every other
+  file under `server/` are as step 2 left them.

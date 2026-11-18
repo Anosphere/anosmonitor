@@ -1,0 +1,63 @@
+:host {
+  display: block;
+}
+
+.name {
+  margin: 0 0 12px;
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.row {
+  display: contents;
+}
+
+dt {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.help {
+  margin: 4px 0;
+}
+
+.earlier {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.detail {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* A phone: the label stands over its value. */
+@media (max-width: 599px) {
+  .rows {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  dt {
+    margin-top: 8px;
+    font-size: 0.75rem;
+  }
+}

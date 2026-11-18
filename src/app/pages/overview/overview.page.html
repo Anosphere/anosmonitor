@@ -1,0 +1,46 @@
+@if (overview() !== null) {
+  <section class="cards">
+    @for (card of cards(); track card.label) {
+      <mat-card appearance="outlined">
+        <mat-card-content class="card">
+          <span class="label">{{ card.label }}</span>
+          <span class="value">{{ card.value }}</span>
+          @if (card.under; as under) {
+            <span class="under">{{ under }}</span>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+  </section>
+}
+
+@if (notice(); as line) {
+  <p class="line" [class]="line.colour" role="status">{{ line.text }}</p>
+} @else {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+
+@if (overview() !== null) {
+  <section class="tiles" [attr.aria-label]="w.overview.tiles">
+    @for (tile of tiles(); track tile.id) {
+      <button
+        type="button"
+        class="tile"
+        [class]="tile.colour"
+        [class.tapped]="tile.id === tappedId()"
+        [attr.aria-pressed]="tile.id === tappedId()"
+        (click)="tap(tile.id)"
+      >
+        <span class="number">{{ tile.id }}</span>
+        <span class="says">{{ tile.says }}</span>
+      </button>
+    }
+  </section>
+
+  @if (tapped(); as validator) {
+    <app-validator-details class="details" [validator]="validator" [now]="now()" [history]="history()" />
+  }
+
+  <p class="words"><app-parts [parts]="software()" /></p>
+  <p class="words"><app-parts [parts]="registry()" /></p>
+}

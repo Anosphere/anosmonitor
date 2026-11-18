@@ -1,0 +1,17 @@
+@if (api.signedIn()) {
+  <mat-toolbar class="bar">
+    <a class="title" routerLink="/">{{ w.title }}</a>
+    <span class="spacer"></span>
+    <button mat-icon-button type="button" [matMenuTriggerFor]="menu" [attr.aria-label]="w.shell.menu">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #menu="matMenu">
+      <a mat-menu-item routerLink="/passkeys">{{ w.shell.passkeys }}</a>
+      <button mat-menu-item type="button" (click)="signOut()">{{ w.shell.signOut }}</button>
+    </mat-menu>
+  </mat-toolbar>
+}
+
+<main>
+  <router-outlet />
+</main>

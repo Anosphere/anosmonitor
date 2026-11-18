@@ -1,0 +1,108 @@
+/* The four cards: four in a row, two on a phone. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label,
+.under {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.value {
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* The line under the cards. Its colour is one of the four classes of src/styles.css, which set --fill, --ink and --line. */
+.line {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--fill);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+/* The tiles: five in a row on a wide screen, four on a narrower one, three on a phone. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: 8px 4px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--fill);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* The tapped tile: a stronger border, in the colour of its words. */
+.tile.tapped {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+.number {
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.says {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.details {
+  margin-top: 16px;
+}
+
+/* The software line and the registry line. */
+.words {
+  margin: 16px 0 0;
+  line-height: 1.6;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+@media (max-width: 839px) {
+  .tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

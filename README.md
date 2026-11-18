@@ -7,7 +7,7 @@ once a minute, on port 3000 for the validator and on port 3200 for the
 keyholder. From the answers it works out which validators run, which are
 down, and which run other software than the rest, and it keeps a short
 history in a small Postgres database. A website that only the owner's
-passkey opens will show the result.
+passkey opens shows the result.
 
 The monitor only looks. It reads what every doorman already answers to
 anyone. It holds no key to any validator, and nothing in it changes
@@ -19,10 +19,11 @@ The plan it is built from is `forclaude/monitor-plan-1.md`, beside the
 repositories. The record is `docs/schemas.md`: the settings, the tables,
 the states and the rules.
 
-So far the server sweeps, logs, and answers what the page will ask: the
-sign-in by passkey and the overview (`docs/schemas.md`, sections 9 and
-10). Nothing shows the result yet: the page comes with the next step of
-the plan.
+So far the server sweeps, logs and answers the page, and the page shows
+the result: the sign-in by passkey, the overview and the passkeys
+(`docs/schemas.md`, sections 9 to 11). What is still to come is the
+monitor's own server: its deploy files and the lines that set it up, with
+the last step of the plan.
 
 ## Running it on this machine
 
@@ -41,14 +42,33 @@ npm install
 npm run server
 ```
 
+And in a second terminal, from this folder too:
+
+```bash
+ng serve
+```
+
+Then <http://localhost:4210>. The passkey made there is one for
+`localhost`, apart from the one for `monitor.anocloud.com`.
+
 No env file is needed: every setting has a local default
 (`server/config.js`). The server makes its own tables at every start
 (`db/schema.sql`). It reads the real registry from GitHub and sweeps the
 real network. Those are the same public reads as on the monitor's own
 server.
 
-The terminal shows where the server listens, then the registry it took,
-then the first sweep:
+`ng serve` shows the page on port 4210 and builds it anew at every change
+of a file. It hands every path under `/api` to the server on port 4400
+(`proxy.conf.json`).
+
+The first time, the page offers one button, "Make the owner's passkey".
+The first passkey made is the owner's. From then on the page says "Sign
+in", and the overview follows. At a sign-in the device may offer other
+passkeys for `localhost` too, the wallet's test passkeys among them. The
+monitor takes only its own.
+
+The first terminal shows where the server listens, then the registry it
+took, then the first sweep:
 
 ```text
 monitor listening on http://localhost:4400
@@ -76,3 +96,16 @@ The state each validator is in now, from the history table:
 ```bash
 psql monitor -c 'select validator_id, state, detail, started_at from validator_states where ended_at is null order by validator_id'
 ```
+
+The server hands out the built page too, as it will on the monitor's own
+server. This line builds the page into `dist/monitor/browser`:
+
+```bash
+npm run build
+```
+
+Then <http://localhost:4400> shows the same page with no `ng serve`. Only
+there does the page run under the server's safety headers
+(`docs/schemas.md`, section 9.6); `ng serve` sets none. The passkey for
+`localhost` opens both addresses. The name must be `localhost`: at
+`127.0.0.1` the server refuses the sign-in.

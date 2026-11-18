@@ -1,0 +1,65 @@
+<h1 class="title">{{ w.passkeys.title }}</h1>
+<p class="back"><a routerLink="/">{{ w.passkeys.back }}</a></p>
+
+@if (lines(); as list) {
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      @for (line of list; track line.id) {
+        <div class="passkey">
+          <div class="what">
+            <span class="label">{{ line.label }}</span>
+            @if (line.thisSession) {
+              <span class="mark">{{ w.passkeys.thisBrowser }}</span>
+            }
+            <span class="when">{{ line.when }}</span>
+          </div>
+          @if (list.length > 1) {
+            @if (asked() === line.id) {
+              <div class="sure">
+                <span>{{ line.question }}</span>
+                <button mat-flat-button type="button" class="danger" (click)="remove(line.id)" [disabled]="busy()">
+                  {{ w.passkeys.yesRemove }}
+                </button>
+                <button mat-button type="button" (click)="asked.set(null)" [disabled]="busy()">{{ w.passkeys.keep }}</button>
+              </div>
+            } @else {
+              <button mat-stroked-button type="button" (click)="ask(line.id)" [disabled]="busy()">{{ w.passkeys.remove }}</button>
+            }
+          }
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  @if (adding()) {
+    <div class="new">
+      <mat-form-field appearance="outline" class="field" subscriptSizing="dynamic">
+        <mat-label>{{ w.passkeys.label }}</mat-label>
+        <input
+          matInput
+          maxlength="40"
+          autocomplete="off"
+          [ngModel]="label()"
+          (ngModelChange)="label.set($event)"
+          (keydown.enter)="add()"
+          [disabled]="busy()"
+        />
+        <mat-hint>{{ w.passkeys.labelHint }}</mat-hint>
+      </mat-form-field>
+      <div class="buttons">
+        <button mat-flat-button type="button" (click)="add()" [disabled]="busy()">{{ w.passkeys.makeIt }}</button>
+        <button mat-button type="button" (click)="stopAdding()" [disabled]="busy()">{{ w.passkeys.cancel }}</button>
+      </div>
+    </div>
+  } @else {
+    <p class="more">
+      <button mat-flat-button type="button" (click)="startAdding()" [disabled]="busy()">{{ w.passkeys.add }}</button>
+    </p>
+  }
+} @else if (failure() === null) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+
+@if (failure(); as line) {
+  <p class="failure" role="alert">{{ line }}</p>
+}

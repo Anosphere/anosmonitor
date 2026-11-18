@@ -1,12 +1,14 @@
 import express from 'express';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { authRoutes } from './auth/auth.routes.js';
 import { config } from './config.js';
 import { overviewRoutes } from './overview/overview.routes.js';
 import { newestSweep } from './sweep/sweep.js';
 
 /**
- * The Express app (docs/schemas.md section 9): the headers, then the
- * routes. Every route is under /api, JSON in and out.
+ * The Express app (docs/schemas.md sections 9 and 11): the headers, then
+ * the routes, then the page. Every route is under /api, JSON in and out.
  *
  * In front of the routes, in this order:
  *   1. The page's safety headers on every answer, and Cache-Control:
@@ -24,8 +26,13 @@ import { newestSweep } from './sweep/sweep.js';
  *                                       /api/validators/:id/history, both
  *                                       only when signed in
  *
- * Behind the routes: a path no route answers is 404, and an error is 500,
- * both as JSON, so they carry the same headers as every other answer.
+ * Behind the routes, in this order:
+ *   1. A path under /api that no route answers is 404, as JSON.
+ *   2. The page: the files of the Angular build in DIST_DIR, and its
+ *      index.html for any other GET, so the page's own paths (/sign-in,
+ *      /passkeys) load, also after a reload. The files hold no data.
+ *   3. Anything else is 404, and an error is 500, both as JSON, so they
+ *      carry the same headers as every other answer.
  *
  * Kept separate from index.js so it can be imported without opening a
  * port.
@@ -82,6 +89,27 @@ function notFound(req, res) {
 }
 
 /**
+ * The page for a GET that no route and no file of the build answered: the
+ * build's index.html, so the page's own paths load. `dist` is the build's
+ * folder. Another method goes on to the 404. With no build in the folder,
+ * the answer says how to make one.
+ */
+function pageFrom(dist) {
+  const index = resolve(dist, 'index.html');
+  return (req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      next();
+      return;
+    }
+    if (!existsSync(index)) {
+      res.status(404).type('text/plain').send(`no build at ${dist}: run npm run build`);
+      return;
+    }
+    res.sendFile('index.html', { root: dist });
+  };
+}
+
+/**
  * The last stop for an error. Express knows an error handler by its four
  * parameters, so `next` stays though nothing calls it. Express sends a
  * rejected promise of an async route here by itself.
@@ -122,7 +150,17 @@ export function createApp() {
   app.use(authRoutes);
   app.use(overviewRoutes);
 
-  // Order matters: these two come after every route.
+  // A path under /api that no route answers: 404 as JSON, before the build
+  // is looked at.
+  app.use('/api', notFound);
+
+  // The page: the Angular build's files, and its index.html for any other
+  // GET.
+  const dist = resolve(config.distDir);
+  app.use(express.static(dist, { index: 'index.html' }));
+  app.use(pageFrom(dist));
+
+  // Order matters: these two come after everything else.
   app.use(notFound);
   app.use(errorHandler);
 

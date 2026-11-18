@@ -1,0 +1,99 @@
+.title {
+  margin: 8px 0 4px;
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.back {
+  margin: 0 0 16px;
+}
+
+.back a {
+  color: var(--mat-sys-primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.back a:hover,
+.back a:focus-visible {
+  text-decoration: underline;
+}
+
+/* One passkey: what it is on the left, its "Remove" on the right; on a phone the button goes under. */
+.passkey {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.passkey:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.passkey:last-child {
+  padding-bottom: 0;
+}
+
+.what {
+  display: flex;
+  flex: 1 1 240px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.label {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.mark {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-size: 0.75rem;
+}
+
+.when {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.sure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.new {
+  max-width: 480px;
+  margin-top: 16px;
+}
+
+.field {
+  width: 100%;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.more,
+.failure {
+  margin: 16px 0 0;
+}
+
+.failure {
+  color: var(--mat-sys-error);
+  line-height: 1.5;
+}

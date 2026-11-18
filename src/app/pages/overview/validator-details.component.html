@@ -1,0 +1,41 @@
+<mat-card appearance="outlined">
+  <mat-card-content>
+    <h2 class="name">{{ w.details.title(validator().id) }}</h2>
+    <dl class="rows">
+      <div class="row">
+        <dt>{{ w.details.state }}</dt>
+        <dd>
+          {{ state() }}
+          @if (validator().state === 'notCounted') {
+            <p class="help"><app-parts [parts]="w.details.help" /></p>
+          }
+        </dd>
+      </div>
+      @for (row of rows(); track row.label) {
+        <div class="row">
+          <dt>{{ row.label }}</dt>
+          <dd>{{ row.value }}</dd>
+        </div>
+      }
+      <div class="row">
+        <dt>{{ w.details.earlier }}</dt>
+        <dd>
+          @if (earlier().length > 0) {
+            <ul class="earlier">
+              @for (entry of earlier(); track $index) {
+                <li>
+                  {{ entry.line }}
+                  @if (entry.detail !== '') {
+                    <span class="detail">{{ entry.detail }}</span>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            {{ w.dash }}
+          }
+        </dd>
+      </div>
+    </dl>
+  </mat-card-content>
+</mat-card>

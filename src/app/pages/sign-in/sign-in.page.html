@@ -1,0 +1,21 @@
+<mat-card appearance="outlined" class="door">
+  <mat-card-content class="body">
+    <h1 class="title">{{ w.title }}</h1>
+    @if (door() === null) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    } @else {
+      <button mat-flat-button type="button" class="press" (click)="press()" [disabled]="busy()">
+        @if (door() !== 'unknown') {
+          <mat-icon>fingerprint</mat-icon>
+        }
+        {{ button() }}
+      </button>
+      @if (failure(); as line) {
+        <p class="failure" role="alert">{{ line }}</p>
+      }
+      @if (door() === 'none') {
+        <p class="note">{{ w.signIn.makeNote }}</p>
+      }
+    }
+  </mat-card-content>
+</mat-card>

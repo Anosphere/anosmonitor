@@ -1,0 +1,49 @@
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+code {
+  font-size: 12px;
+  word-break: break-all;
+}
+
+/* The four colours of the screen (docs/schemas.md sections 6.3 and 11.4): green for a validator that is counted and for a sweep with no problems, amber for one that works and needs a look, red for one that does not work for the network, grey for a row that is not active and for what is not known yet. A class sets three values and paints nothing by itself: the fill, the ink that is read on the fill, and the line around it. The tiles and the problem line of the overview take them from here. */
+.green {
+  --fill: #e6f4ea;
+  --ink: #0d652d;
+  --line: #81c995;
+}
+
+.amber {
+  --fill: #fef7e0;
+  --ink: #7a4f01;
+  --line: #f2b600;
+}
+
+.red {
+  --fill: #fce8e6;
+  --ink: #a50e0e;
+  --line: #ee675c;
+}
+
+.grey {
+  --fill: #f1f3f4;
+  --ink: #5f6368;
+  --line: #bdc1c6;
+}
+
+/* The red of the button that removes a passkey (the wallet's rule of the same name): the class `danger` on a Material button gives it the theme's error colours, whether it is filled, outlined or a text button. A disabled button keeps the theme's disabled look. */
+.danger {
+  --mat-button-filled-container-color: var(--mat-sys-error);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-error);
+  --mat-button-outlined-label-text-color: var(--mat-sys-error);
+  --mat-button-outlined-outline-color: var(--mat-sys-error);
+  --mat-button-text-label-text-color: var(--mat-sys-error);
+}

@@ -1,0 +1,36 @@
+.door {
+  max-width: 420px;
+  margin: 48px auto 0;
+}
+
+.door .body {
+  padding: 32px 24px 24px;
+  text-align: center;
+}
+
+.title {
+  margin: 0 0 24px;
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.press {
+  width: 100%;
+  height: 48px;
+  font-size: 1rem;
+}
+
+.failure,
+.note {
+  margin: 16px 0 0;
+  line-height: 1.5;
+}
+
+.failure {
+  color: var(--mat-sys-error);
+}
+
+.note {
+  color: var(--mat-sys-on-surface-variant);
+}
