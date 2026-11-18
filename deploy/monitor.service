@@ -1,0 +1,21 @@
+[Unit]
+Description=anos validator monitor
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+User=monitor
+WorkingDirectory=/opt/monitor/monitorsoftware
+ExecStart=/usr/bin/node --env-file=network/monitor.env server/index.js
+Restart=always
+RestartSec=5
+MemoryMax=1G
+MemorySwapMax=0
+TasksMax=256
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

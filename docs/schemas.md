@@ -4,10 +4,13 @@ The settings, the tables, the states and the rules of the monitor, and at
 the end the notes: every choice the build made where the plan is silent.
 
 Built from `~/Desktop/Z-TestNet/forclaude/monitor-plan-1.md` (FINAL,
-2026-11-17), in that plan's four steps. Sections 1 to 7 and 9 to 11 carry
+2026-11-17), in that plan's four steps. Sections 1 to 7 and 9 to 12 carry
 the plan's own numbers, so "section 6.3" means the same here and there.
 The plan's section 8, what cannot be seen from outside, holds nothing
-that is built, so this file has no section 8.
+that is built, so this file has no section 8. The plan's sections 13 and
+14 are the lines the operator runs on the monitor's own server. They are
+in `README.md`, under "The monitor server" and "Later, on the server",
+and not here.
 
 **Step 1, the project and the sweep, 2026-11-17.** The folder, the
 packages, the settings, the tables, the registry, the sweep, the newest
@@ -35,19 +38,39 @@ once, in one line of Node. With nothing else: the server was still not
 started, no database was made, `ng serve` was not run, and no browser
 has shown the page. The first look is the operator's.
 
+**Step 4, the deploy files and the papers, 2026-11-17.** The five files
+that put the monitor on its own server, monitor1: the settings, the
+unit, the two nginx sites and the install script, each the text of the
+plan's appendix A, word for word. The README's sections "The monitor
+server" and "Later, on the server", with the lines of the plan's
+sections 13 and 14. And this file, closed: after this step nothing of
+the plan is left to build. Checked with `node --check` on every file
+under `server/`, with `sh -n` and `dash -n` on the install script, and
+with `npx ng build`, which ended without an error or a warning. Two
+reads more: a `diff` of each of the five files against the appendix,
+and a `diff` of the README's lines against the plan's sections 13 and
+14. Neither found a difference. With nothing else: the machine of the
+build has no nginx and no systemd, so the two nginx sites and the unit
+were not tried, and the install script was never run. When this step
+was built, monitor1 did not exist, the server had still never been
+started, no database had been made, and no browser had shown the page.
+The set-up on monitor1 is the first run of all of it, and it is the
+operator's.
+
 ## 1. The project
 
 A small server of its own asks every doorman's public `/health` once a
 minute and keeps what it learns. It only looks: no key to any validator,
 no button that changes anything outside the monitor.
 
-The files so far:
+The files:
 
 ```text
 monitorsoftware/
   README.md  LICENSE  .gitignore
   package.json  package-lock.json
   angular.json  tsconfig.json  tsconfig.app.json  proxy.conf.json
+  network/monitor.env                 the settings on monitor1, committed (section 12.1)
   db/schema.sql                       the tables
   server/
     index.js                          the start: settings, schema, registry, sweeps, listen
@@ -80,6 +103,10 @@ monitorsoftware/
     app/services/api.service.ts       the calls to the server, and the shape of every answer
     app/services/passkey.service.ts   the two passkey calls
     app/words.ts                      every sentence the page shows
+  deploy/monitor.service              the unit on monitor1 (section 12.2)
+  deploy/nginx/monitor-acme.conf      nginx's site on port 80 (section 12.3)
+  deploy/nginx/monitor.conf           nginx's site on port 443 (section 12.3)
+  scripts/install-system-files.sh     puts the deploy files in place on monitor1 (section 12.5)
   docs/schemas.md                     this file
 ```
 
@@ -113,7 +140,8 @@ is in section 9.4.
 
 `server/config.js` reads them once at the start. Every one has a local
 default, so the operator's own machine needs no env file. On monitor1
-they will come from the committed file `network/monitor.env` (step 4).
+they come from the committed file `network/monitor.env`, which the unit
+hands to node with `--env-file` (section 12.1).
 
 | variable | local default | on monitor1 | what it is |
 |---|---|---|---|
@@ -676,7 +704,9 @@ that this header would block, and the styles would not load. The built
 no script of its own.
 
 The headers go on the build's files too. `ng serve` does not set them:
-only the page the server itself hands out runs under them.
+only the page the server itself hands out runs under them. On monitor1
+nginx adds one header more, `Strict-Transport-Security`, where TLS ends
+(section 12.3).
 
 The page shows what the validators answer as text only, never as HTML.
 
@@ -1082,9 +1112,203 @@ last passkey has no "Remove".
 
 A failure shows one line under the list (section 11.3).
 
+## 12. The deploy files
+
+The monitor is made for a server of its own at Hetzner, monitor1, with
+the name `monitor.anocloud.com`. Five files of this repository put it
+there. Each is the text of the plan's appendix A, word for word.
+
+| file | what it is |
+|---|---|
+| `network/monitor.env` | the settings on monitor1 |
+| `deploy/monitor.service` | the systemd unit that runs the server |
+| `deploy/nginx/monitor-acme.conf` | nginx's site on port 80 |
+| `deploy/nginx/monitor.conf` | nginx's site on port 443 |
+| `scripts/install-system-files.sh` | puts the other four in place, and restarts the unit |
+
+The lines that set monitor1 up with these files, and the lines for
+later (an update, starting over with the passkeys), are in `README.md`:
+"The monitor server" and "Later, on the server".
+
+What the five files take as given on monitor1. The README's lines make
+all of it but `git`:
+
+- the system user `monitor`, with the home `/opt/monitor`;
+- the clone of this repository at `/opt/monitor/monitorsoftware`, owned
+  by `monitor`, with its packages and with the page's build in
+  `dist/monitor/browser`;
+- Node.js 24 at `/usr/bin/node`;
+- `git`, which the server calls for the newest commits (section 7). The
+  lines install none: they clone with the one a new server brings;
+- Postgres on the same server, with the user `monitor` and the database
+  `monitor`, which that user owns;
+- nginx;
+- for the site on port 443, the certificate (section 12.4).
+
+### 12.1 The settings on monitor1
+
+`network/monitor.env`. Committed, nothing secret. The unit hands it to
+node with `--env-file`, and `server/config.js` reads the values once,
+at the start. So a change of the file needs a restart of the unit.
+
+It sets sixteen variables, with the values of the column "on monitor1"
+in section 2. `PGPORT`, `PGPASSWORD` and `DIST_DIR` are not in it, so
+their defaults hold.
+
+- `PORT=4400`. `deploy/nginx/monitor.conf` names the same port, because
+  nginx reads no env file. A change goes into both files.
+- `WEB_ORIGIN=https://monitor.anocloud.com` and
+  `RP_ID=monitor.anocloud.com`. The passkey checks accept this origin
+  and this relying-party id only. The id is the site's own name, so a
+  passkey made there opens nothing else, and no other site's passkey
+  opens the monitor. The one origin is https, so the session's cookie
+  is marked `Secure`.
+- `PGHOST=/var/run/postgresql`, `PGDATABASE=monitor`, `PGUSER=monitor`.
+  Postgres over the local socket, as the user the unit runs as, with no
+  password: Postgres lets a local user in under its own name. The
+  default of `PGPORT`, 5432, is part of the socket's file name.
+- `REGISTRY_URL`, `VALIDATOR_REPO`, `DOORMAN_REPO`, `KEYHOLDER_REPO`:
+  the registry file and the three repositories on GitHub, as in section
+  2.
+- `SWEEP_SECONDS=60`, `ANSWER_TIMEOUT_SECONDS=10`, `GITHUB_MINUTES=10`,
+  `SESSION_DAYS=30`, `CERTIFICATE_WARN_DAYS=3`,
+  `IGNORE_FLOOR_PERCENT=51`: the defaults, written out.
+
+There is no `.env` on monitor1, and no secret besides the certificate's
+key.
+
+### 12.2 The unit
+
+`deploy/monitor.service`, installed as
+`/etc/systemd/system/monitor.service`.
+
+- It runs `/usr/bin/node --env-file=network/monitor.env server/index.js`
+  as the user `monitor`, in `/opt/monitor/monitorsoftware`.
+- It starts after the network is up and after Postgres
+  (`postgresql.service`), and at every start of monitor1
+  (`multi-user.target`; the install script enables it).
+- Whenever the server ends, systemd starts it again five seconds later
+  (`Restart=always`, `RestartSec=5`). So a start that cannot reach the
+  database is tried again until it can.
+- The wallet unit's limits: 1 GB of memory and no swap, 256 tasks, no
+  new privileges (`NoNewPrivileges`), the file system read-only for the
+  server (`ProtectSystem=strict`), no sight of `/home` and `/root`
+  (`ProtectHome`), and a `/tmp` of its own (`PrivateTmp`).
+
+The server writes no file: what it keeps goes to Postgres, over the
+socket. Its log is the journal, `journalctl -u monitor`.
+
+### 12.3 nginx
+
+Two sites, each a file under `/etc/nginx/sites-available`, linked into
+`sites-enabled`. nginx's version is not told (`server_tokens off`). The
+port 80 site and the site for the monitor's name write their access log
+to `/var/log/nginx/monitor-access.log`.
+
+Port 80: `deploy/nginx/monitor-acme.conf`, the site `monitor-acme`. It
+is the default site of port 80, on IPv4 and IPv6, so it answers
+whatever name was asked for.
+
+- `/.well-known/acme-challenge/` is served from `/var/www/acme`: the
+  files acme.sh writes there when it issues or renews the certificate.
+- Everything else is answered with 301 to
+  `https://monitor.anocloud.com`, with the path that was asked for.
+
+Port 443: `deploy/nginx/monitor.conf`, the site `monitor`, there once
+the certificate is. TLS 1.2 and 1.3, HTTP/2, on IPv4 and IPv6, with the
+certificate `/etc/monitor/tls/fullchain.pem` and its key
+`/etc/monitor/tls/key.pem`. No balancer stands in front: TLS ends here.
+
+- The name `monitor.anocloud.com`: everything is handed to the server
+  on `http://127.0.0.1:4400`, with the `Host` header as it came. nginx
+  waits 5 seconds for the connection and 30 seconds for the answer.
+- Any other name, or none: the handshake is made, with the same
+  certificate, and then the connection is closed without an answer
+  (`return 444`).
+- `/api/` is limited to five requests a second for each address, with a
+  burst of 20 that is let through at once (`burst=20 nodelay`). The
+  passkey routes are open to anyone; the page itself asks once every 15
+  seconds. nginx answers a request over the limit with 503, and a
+  server that is down with 502. The page reads both as "The monitor's
+  server does not answer." (section 11.3).
+- A request's body is 64 KB at most, the server's own limit. Its
+  headers must arrive within 10 seconds, and an idle connection is kept
+  for 15.
+- The build's script and style files go out gzip-compressed, at level
+  6, to a browser that asks for it, and the page's HTML too. The JSON
+  under `/api` is not compressed.
+- `Strict-Transport-Security: max-age=31536000` goes on every answer
+  under the monitor's name: for a year the browser asks that name over
+  https only. It is the one header nginx adds. The page's safety
+  headers are the server's own (section 9.6).
+
+### 12.4 The certificate
+
+From Let's Encrypt, over port 80, the way the doormen get theirs, so no
+deSEC token sits on the server. acme.sh on monitor1 itself asks for it.
+It writes the challenge's file under `/var/www/acme`, and Let's Encrypt
+reads it through the port 80 site. So at the first issue and at every
+renewal, the name `monitor.anocloud.com` must lead to monitor1, and
+port 80 must be open.
+
+acme.sh then installs the key as `/etc/monitor/tls/key.pem` and the
+certificate with its chain as `/etc/monitor/tls/fullchain.pem`, and
+reloads nginx. The install script has made the key file before that,
+empty and for root alone (mode 600), so the key lands in a file that is
+closed already. acme.sh puts a daily job into root's crontab. It renews
+the certificate and reloads nginx by itself.
+
+### 12.5 The install script
+
+`scripts/install-system-files.sh`, run with `sh`, as root. It finds the
+repository from its own place, so it runs from any folder. It stops at
+once when it is not root, or when `deploy/` with its three files is not
+beside it. Every step is safe to repeat. A command that fails stops the
+script there (`set -eu`).
+
+1. The TLS folder `/etc/monitor/tls`, mode 755. In it an empty
+   `key.pem`, mode 600, unless a `key.pem` is there already.
+2. The challenge folder `/var/www/acme`, mode 755.
+3. nginx. The system's default site is taken out of `sites-enabled`.
+   The port 80 site is installed and linked, always. The TLS site is
+   installed and linked once `fullchain.pem` and `key.pem` are both not
+   empty; until then the script says `TLS site skipped`. The access log
+   is made if it is missing, for `root:adm`, mode 640. Then `nginx -t`,
+   and nginx is enabled, started and reloaded.
+4. The unit is copied to `/etc/systemd/system/`, systemd reads its
+   units anew, and the unit is enabled and restarted.
+5. The script says what it did.
+
+Its own lines, on a pass that skips the TLS site:
+
+```text
+TLS site skipped: no certificate at /etc/monitor/tls yet; put it there, then run this script again
+Installed: /etc/monitor/tls, /var/www/acme, nginx site monitor-acme, nginx site monitor (skipped), unit monitor.service.
+The unit was restarted: journalctl -fu monitor
+Next: the certificate into /etc/monitor/tls (README, "The monitor server"), then this script again.
+```
+
+On a pass with the certificate the first and the last line are not
+there, and the second says `nginx site monitor (installed)`. Between
+the script's own lines stand those of `nginx -t` and of `systemctl`.
+
+The script runs twice at the set-up: before the certificate, when it
+skips the TLS site, and after it. It runs again after every pull. Each
+run restarts the unit. The sweeps stop for a few seconds. The sessions
+stay, because they are in the database. The states the screen shows
+are taken from the history again (section 6.4), and a passkey challenge
+that was handed out is forgotten (section 9.2).
+
+When `nginx -t` fails, the script stops before the unit is touched.
+nginx goes on with the sites it had loaded, and the server runs on as
+it was.
+
 ## Notes
 
-Every choice the build made where the plan is silent.
+Every choice the build made where the plan is silent. Each group is in
+the words of its own step. Where one says that something is not there
+yet, holds "for now", or waits for a later step, that step has built it
+since.
 
 ### Step 1 (2026-11-17)
 
@@ -1637,3 +1861,91 @@ Other files:
   9.5, 9.6 and 10 that spoke of the page as still to come.
 - `db/schema.sql`, `server/config.js`, `server/index.js` and every other
   file under `server/` are as step 2 left them.
+
+### Step 4 (2026-11-17)
+
+The deploy files:
+
+- The five files are the plan's appendix A, byte for byte. Nothing was
+  reworded. Read against the built server, no line of them is untrue.
+- All sixteen names in `network/monitor.env` are names that
+  `server/config.js` reads.
+- `scripts/install-system-files.sh` has the mode 644, as the wallet's
+  script has. The lines run it with `sh`, never by its own name.
+- `.gitignore` is as it was. It names `.env`, a file of exactly that
+  name, so `network/monitor.env` is not ignored and is committed.
+- The plan's sections 12 to 14 needed no other file. No package was
+  added and no `npm install` ran. `package.json`, the lock file,
+  `angular.json`, `db/schema.sql` and every file under `server/` and
+  `src/` are as step 3 left them.
+- After the build of the check, npm printed a notice of its own: a
+  newer npm exists (11.19.1, then 12.2.3). It is not a warning of the
+  build. The same notice can follow a build on monitor1. The last three
+  lines that an update shows are then npm's, and the three files the
+  line lists after them say that the build is there.
+
+The README:
+
+- The twelve steps of the set-up are numbered 1 to 12, not 13.1 to
+  13.12: the README has no section 13. Its "before step 9" is the
+  plan's "before 13.9". Where the plan says "Section 14 has the line",
+  the README names its own section, "Later, on the server".
+- The lines stand in `text` fences, as in the plan, the five lines of
+  step 9 in one fence. The lines of "Running it on this machine" stand
+  in `bash` fences: those are for the operator's own machine.
+- The plan's sentence that the user pastes what a line prints into a
+  chat is not in the README, which anyone may read. It says that the
+  operator reads what a line prints before the next one.
+- "The monitor server" begins with what the plan's section 12 says, and
+  with what else the lines rest on: how the server is set up, where the
+  clone is and whose it is, the settings file, the sign-in to Postgres,
+  and where the certificate comes from. Those are the plan's decisions
+  11 and 24 and its section 13.
+- Step 7 names the build's three files, and says two things from the
+  notes of step 3: the build must reach `fonts.googleapis.com`, and
+  `npm ci` may end with a notice about four install scripts.
+- Step 8 says what the install script itself says on its first pass,
+  and shows the monitor's lines as the built server prints them on
+  monitor1. Three of the seven start lines differ from the sample of
+  "Running it on this machine": the origin, the relying-party id, and
+  the database, which reads `monitor at /var/run/postgresql`. The first
+  line reads `http://localhost:4400` on monitor1 too.
+- Step 8 also says that the sweep's line can be missing. The line waits
+  five seconds, and a validator that does not answer holds a sweep for
+  up to ten. `GET /api/health` then says `"lastSweepAt":null`. The
+  second line of an update can show the same, and "Later, on the
+  server" says so.
+- Step 10 names the script's own word for its second pass,
+  `(installed)`.
+- The second line of step 9 keeps the plan's `<your email>`. No email
+  address and no address of monitor1 is in any file.
+- The README speaks of monitor1 in the present, as the plan's section
+  12 does. Its first words there, "is made for", hold before the server
+  exists and after.
+- Two lines outside the new sections changed: the paragraph that said
+  how far the build is, and "as it will on the monitor's own server",
+  which now reads "as it does".
+
+This file:
+
+- It has a section 12, with the plan's number: the five files as they
+  are built. The plan's sections 13 and 14 are lines for the operator.
+  They stand in the README alone, so there is one place to keep them.
+- Section 12 also lists what the five files take as given on monitor1,
+  and what a run of the install script does to a monitor that is
+  running.
+- Three things in section 12.3 are nginx's own defaults, not lines of
+  the site's file: the 503 for a request over the limit, the 502 for a
+  server that is down, and that HTML is compressed wherever `gzip` is
+  on.
+- One sentence was added to section 9.6: nginx adds one header.
+- The notes of steps 1 to 3 stand as they were written. The sentence at
+  the head of the notes says how to read their "yet" and "for now".
+
+Outside the repository:
+
+- The row for `monitorsoftware/` in the folder table of
+  `Z-TestNet/README.md` stands after `signingserver/`, the last of the
+  programs we run. It says what the monitor is and names the plan. It
+  says that the plan names the GitHub repository, not that the
+  repository is there: when step 4 was built, it was not.
