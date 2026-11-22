@@ -121,6 +121,24 @@ export interface Validator {
   keyholder?: Keyholder | null;
 }
 
+/**
+ * One of our own servers as the overview carries it (docs/schemas.md
+ * section 18.4). `kind` is masterpod, wallet, signer or monitor; `name` is
+ * what its tile says; `address` is the place that is asked, null for the
+ * monitor itself. `state` is the key of what the screen shows (section
+ * 18.2), `since` when that began, and `detail` one short line that says
+ * what was seen, which may be empty. The three are null until the first
+ * judged sweep after a start.
+ */
+export interface OwnServer {
+  kind: string;
+  name: string;
+  address: string | null;
+  state: string | null;
+  since: string | null;
+  detail: string | null;
+}
+
 /** One program of the software line: the commit most validators run, how many run it, GitHub main's newest commit (40 characters, or null until a read worked), and whether GitHub's begins with the usual one. */
 export interface Program {
   commit: string | null;
@@ -152,6 +170,7 @@ export interface RegistryFacts {
  * section 10). Until the first sweep after a start has ended, `sweptAt`,
  * `tookMs` and `network` are null. While no registry is there at all,
  * `registryRead` is false, `validators` is empty and `registry` is null.
+ * `servers` is our own servers, in the order the screen shows them.
  */
 export interface Overview {
   sweptAt: string | null;
@@ -162,6 +181,7 @@ export interface Overview {
   network: Network | null;
   problems: Problem[];
   validators: Validator[];
+  servers: OwnServer[];
   software: Software;
   registry: RegistryFacts | null;
 }

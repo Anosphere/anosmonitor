@@ -68,6 +68,11 @@ function reasonOf(err) {
  *                                         the timeout, the refused
  *                                         connection, the certificate's
  *                                         fault, `too long`, `not JSON`
+ *
+ * With `too long` and `not JSON` an answer did come and could not be read.
+ * Then the result carries `status` as well, the HTTP status of that answer.
+ * The sweep of the validators does not read it; our own servers do
+ * (server/servers/servers.js).
  */
 export async function ask(url) {
   const started = performance.now();
@@ -78,14 +83,14 @@ export async function ask(url) {
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     const text = await readUpTo(response, config.answerMaxBytes);
-    if (text === null) return { answered: false, reason: 'too long' };
+    if (text === null) return { answered: false, reason: 'too long', status: response.status };
     let body;
     try {
       body = JSON.parse(text);
     } catch {
-      return { answered: false, reason: 'not JSON' };
+      return { answered: false, reason: 'not JSON', status: response.status };
     }
-    if (!isObject(body)) return { answered: false, reason: 'not JSON' };
+    if (!isObject(body)) return { answered: false, reason: 'not JSON', status: response.status };
     return { answered: true, status: response.status, ms: Math.round(performance.now() - started), body };
   } catch (err) {
     return { answered: false, reason: reasonOf(err) };

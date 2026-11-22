@@ -142,6 +142,25 @@ const PROBLEMS: Record<string, (n: number, days: string | null | undefined) => s
   keyholderDown: (n) => `Validator ${n}: its keyholder does not answer.`,
 };
 
+/** What a tile of our own servers says for each state (docs/schemas.md section 18.2), by the state's key. */
+const OWN_STATES: Record<string, string> = {
+  answers: 'Answers',
+  running: 'Running',
+  noAnswer: 'No answer',
+  databaseDown: 'Database down',
+  closedPage: 'Closed page',
+  otherAnswer: 'Other answer',
+  notAsked: 'Not asked',
+};
+
+/** The problem line's sentence for each state of our own servers that is a problem, by the state's key. `who` is what the sentence calls the server; `seen` is the detail in brackets with a space in front, " (timeout)", or empty. */
+const OWN_PROBLEMS: Record<string, (who: string, seen: string) => string> = {
+  noAnswer: (who, seen) => `${who} does not answer${seen}.`,
+  databaseDown: (who, seen) => `${who} answers, its database does not${seen}.`,
+  closedPage: (who) => `${who} shows the wallet's closed page.`,
+  otherAnswer: (who, seen) => `${who} gives another answer than the monitor expects${seen}.`,
+};
+
 /** The line for each refusal of the server (docs/schemas.md section 9.4), by the server's own short phrase. */
 const REFUSALS: Record<string, string> = {
   'not signed in': 'You are not signed in any more.',
@@ -260,6 +279,27 @@ export const words = {
     /** Behind the line of an ask the server did not answer: the time of the last answer, which is what the screen still shows. */
     screenFrom: (at: string) => `This screen is from ${at}.`,
     tiles: 'The validators',
+  },
+
+  /** Our own servers (section 18.5): the heading over their tiles, what a tile says, and the problem line's sentence. */
+  own: {
+    title: 'Our own servers',
+    /** What a tile says for a state (section 18.2). A key this file does not know shows as it is. */
+    state(key: string): string {
+      return Object.hasOwn(OWN_STATES, key) ? OWN_STATES[key] : key;
+    },
+    /**
+     * The problem line's sentence for one of our own servers. The masterpod
+     * is called "The masterpod", a wallet name by its host name in full, and
+     * anything else by the name on its tile. `detail` is the short line that
+     * goes with the state; it stands in brackets when it is not empty. A key
+     * this file does not know shows as it is.
+     */
+    problem(key: string, kind: string, name: string, address: string | null, detail: string): string {
+      const who = kind === 'masterpod' ? 'The masterpod' : kind === 'wallet' && address !== null ? address.replace(/^[a-z]+:\/\//, '') : name;
+      const seen = detail === '' ? '' : ` (${detail})`;
+      return Object.hasOwn(OWN_PROBLEMS, key) ? OWN_PROBLEMS[key](who, seen) : `${who}: ${key}${seen}.`;
+    },
   },
 
   /** The software line (section 11.4), in pieces: the page puts them together. */

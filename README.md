@@ -15,9 +15,16 @@ anything on one. The list of validators is the registry file the
 validators themselves pull, read from GitHub; this repository holds no
 copy of it and no validator address.
 
-The plan it is built from is `forclaude/monitor-plan-1.md`, beside the
-repositories. The record is `docs/schemas.md`: the settings, the tables,
-the states and the rules.
+In the same minute the monitor asks our own servers from outside, by
+their public names: the masterpod, the wallet under its three names, and
+each signing server through the wallet. Their tiles stand above the
+validators'. It cannot tell the machines of a pair apart: a name answers
+as long as one of them works (`docs/schemas.md`, section 18).
+
+The plans it is built from are `forclaude/monitor-plan-1.md` and, for
+our own servers, `forclaude/monitor-plan-2.md`, beside the repositories.
+The record is `docs/schemas.md`: the settings, the tables, the states
+and the rules.
 
 The server sweeps, logs and answers the page, and the page shows the
 result: the sign-in by passkey, the overview and the passkeys
@@ -53,9 +60,9 @@ Then <http://localhost:4210>. The passkey made there is one for
 
 No env file is needed: every setting has a local default
 (`server/config.js`). The server makes its own tables at every start
-(`db/schema.sql`). It reads the real registry from GitHub and sweeps the
-real network. Those are the same public reads as on the monitor's own
-server.
+(`db/schema.sql`). It reads the real registry from GitHub, sweeps the
+real network and asks our real servers. Those are the same public reads
+as on the monitor's own server.
 
 `ng serve` shows the page on port 4210 and builds it anew at every change
 of a file. It hands every path under `/api` to the server on port 4400
@@ -83,10 +90,11 @@ sweep 18:25:40Z: 25 of 25 counted, 25 keyholders up, position 639, leader 22, 91
 ```
 
 After that it prints one line when a validator's state changes
-(`validator 24: good -> notCounted`) and one sweep line an hour. A change
-shows after two sweeps in a row have seen it, so within two minutes. A
-read from GitHub that fails prints one line; one that works prints
-nothing.
+(`validator 24: good -> notCounted`), one when the state of one of our
+own servers changes (`server signer2: answers -> noAnswer (timeout)`),
+and one sweep line an hour. A change shows after two sweeps in a row
+have seen it, so within two minutes. A read from GitHub that fails
+prints one line; one that works prints nothing.
 
 <http://localhost:4400/api/health> answers
 `{"status":"ok","lastSweepAt":"..."}`.
