@@ -3,6 +3,7 @@ import { requireSession } from '../auth/sessions.js';
 import { config } from '../config.js';
 import { query } from '../db/pool.js';
 import { currentRegistry } from '../registry/registry.js';
+import { ownServers } from '../servers/servers.js';
 import { githubMains, softwareLine } from '../software/github.js';
 import { newestSweep } from '../sweep/sweep.js';
 
@@ -107,6 +108,8 @@ function githubReadAt() {
  *   network           the numbers on top; null before the first sweep
  *   problems          [{ validatorId, state, since }]
  *   validators        one entry for each registry row, in id order
+ *   servers           our own servers, in the screen's order
+ *                     (server/servers/servers.js)
  *   software          for each of the three programs the usual commit, how
  *                     many run it, GitHub main's newest commit and whether
  *                     the two are the same; readAt as githubReadAt has it
@@ -134,6 +137,7 @@ function overview() {
     network: newest === null ? null : newest.network,
     problems: problemsOf(validators),
     validators,
+    servers: ownServers(),
     software: { readAt: githubReadAt(), ...softwareLine(usual) },
     registry: registry === null ? null : {
       hash: registry.hash,

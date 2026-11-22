@@ -4,8 +4,12 @@ The settings, the tables, the states and the rules of the monitor, and at
 the end the notes: every choice the build made where the plan is silent.
 
 Built from `~/Desktop/Z-TestNet/forclaude/monitor-plan-1.md` (FINAL,
-2026-11-17), in that plan's four steps. Sections 1 to 7 and 9 to 12 carry
-the plan's own numbers, so "section 6.3" means the same here and there.
+2026-11-17), in that plan's four steps, and from
+`~/Desktop/Z-TestNet/forclaude/monitor-plan-2.md`, which added our own
+servers. Sections 1 to 7 and 9 to 12 carry the first plan's numbers, and
+section 18 the second plan's, so "section 6.3" means the same here and
+there. The numbers 13 to 17 are sections of the first plan that are not
+in this file.
 The plan's section 8, what cannot be seen from outside, holds nothing
 that is built, so this file has no section 8. The plan's sections 13 and
 14 are the lines the operator runs on the monitor's own server. They are
@@ -57,11 +61,41 @@ started, no database had been made, and no browser had shown the page.
 The set-up on monitor1 is the first run of all of it, and it is the
 operator's.
 
+**Step 5, our own servers, 2026-11-22.** The second plan,
+`forclaude/monitor-plan-2.md`, in one step. One new file,
+`server/servers/servers.js`: in every sweep it asks the masterpod, the
+wallet's names and the signing servers from outside, works out a state
+for each, and shows the monitor itself beside them. With it four
+settings, the HTTP status that `ask` hands on for an answer it could
+not read, `servers` in the overview, and on the page the heading "Our
+own servers" with a tile for each, above the validators' tiles. Section
+18 is the record of it. After this step one page shows the validators
+and our own servers. No package was added, the lock file did not move,
+and `db/schema.sql` is as it was: nothing of this is kept in the
+database. Checked with `node --check` on every file under `server/`,
+with `npx ng build`, which ended without an error or a warning, and
+with made-up sweeps: the new file played against two stand-in servers
+on the machine of the build, through every state of section 18.2 and
+every rule of 18.3. That gave 51 results, all as expected. Two reads
+more: every changed place against the plan, and the eleven code files
+and the README, byte for byte, against the copy in which the plan had
+been tried. Neither found a difference. Then, on the operator's word,
+three sentences that the plan does not name were brought in line with
+this step: two in the README and one in section 12.5 (Notes, Step 5).
+With nothing else: the build did not start the monitor, made no
+database and did not run `ng serve`, and no browser has shown its
+page. What was tried in that copy before the build, a sweep of the
+real network and a look at the page among them, is in the plan's
+opening. Not tried by anyone: monitor1 itself, a phone, Safari, and a
+real outage. No server of ours was made to fail.
+
 ## 1. The project
 
 A small server of its own asks every doorman's public `/health` once a
-minute and keeps what it learns. It only looks: no key to any validator,
-no button that changes anything outside the monitor.
+minute and keeps what it learns. In the same minute it asks our own
+servers from outside, by their public names (section 18). It only looks:
+no key to any validator or to any server of ours, no button that changes
+anything outside the monitor.
 
 The files:
 
@@ -84,6 +118,7 @@ monitorsoftware/
     sweep/states.js                   one validator's state; the two-sweep rule
     sweep/history.js                  the two history tables and their log lines
     software/github.js                the newest commits on GitHub main
+    servers/servers.js                our own servers: what is asked, the states, what the screen shows
     auth/webauthn.js                  the passkey checks
     auth/challenges.js                the challenges, in memory
     auth/sessions.js                  the cookie and the sessions table
@@ -163,17 +198,24 @@ hands to node with `--env-file` (section 12.1).
 | `SESSION_DAYS` | `30` | `30` | how long a sign-in lasts |
 | `CERTIFICATE_WARN_DAYS` | `3` | `3` | a doorman's certificate with fewer days left is a problem |
 | `IGNORE_FLOOR_PERCENT` | `51` | `51` | the validators' own number, in `anossoftware/network/testnet.env`; the two must agree |
+| `MASTERPOD_URL` | the same as on monitor1 | `https://api.anocloud.com` | our own servers (section 18): the masterpod's public address |
+| `WALLET_URLS` | the same | `https://wallet.anocloud.com,https://attestor.wallet.anocloud.com,https://moderator.wallet.anocloud.com` | the wallet's public names, comma separated; the first is also the way to the signing servers |
+| `SIGNING_SERVERS` | `2` | `2` | how many signing servers the wallet names, as many as `SIGNING_SERVER_URLS` lists in `web_app/network/wallet.env`; the two must agree |
+| `MONITOR_NAME` | `this machine` | `monitor1` | what the monitor's own tile calls this server |
 | `DIST_DIR` | `dist/monitor/browser` | not set | the Angular build the server hands out |
 
-On the operator's machine the monitor reads the real registry and sweeps
-the real network. Those are the same public reads as on monitor1.
+On the operator's machine the monitor reads the real registry, sweeps the
+real network and asks our real servers. Those are the same public reads
+as on monitor1.
 
 The cookie is marked `Secure` when every origin in `WEB_ORIGIN` starts
 with `https:`. `config.cookieSecure` holds that answer.
 
 A whole-number variable must be a positive integer, and
 `IGNORE_FLOOR_PERCENT` at most 100; anything else stops the start with a
-line that names the variable. `WEB_ORIGIN` must list at least one origin.
+line that names the variable. `WEB_ORIGIN` and `WALLET_URLS` must each
+list at least one item. A slash at the end of `MASTERPOD_URL` or of a
+wallet name is dropped.
 
 Three values in `server/config.js` are fixed, not variables:
 
@@ -316,13 +358,18 @@ start with a kept copy the line ends
   door's `/health`. All rows at once. A validator's keyholder door is its
   registry address with the port 3000 replaced by 3200. A row whose
   address does not end in `:3000` gets no keyholder check.
+- Our own servers are asked in the same sweep, at the same time (section
+  18). How long the asking took counts both.
 - Each GET: Node's `fetch`, the header `User-Agent: anosmonitor`, no
   redirect followed, `ANSWER_TIMEOUT_SECONDS` to finish, the certificate
   checked the normal way. The body is read up to 64 KB and parsed as JSON.
 - The result of one GET is either an answer (the HTTP status, the
   milliseconds it took, the parsed object) or no answer with a short
   reason. Any HTTP status with a JSON object is an answer. A body longer
-  than 64 KB, or one that is not a JSON object, counts as no answer.
+  than 64 KB, or one that is not a JSON object, counts as no answer. In
+  those two cases an answer did come, and the result carries its HTTP
+  status beside the reason. The validators' part of the sweep does not
+  read it; our own servers' part does (section 18.2).
 - A field that is missing or of the wrong kind is read as null. The
   monitor never stops over an answer's shape.
 
@@ -373,8 +420,10 @@ monitor's address is on no allowlist.
 The newest sweep is kept in memory (`newestSweep()` in
 `server/sweep/sweep.js`): its time, how long it took, how many it reached,
 the numbers on top, the usual commits and the usual registry hash, and for
-each active row what the screen shows and this sweep's fields. The
-answers themselves are not stored anywhere.
+each active row what the screen shows and this sweep's fields. What the
+screen shows for our own servers is kept beside it (`ownServers()` in
+`server/servers/servers.js`). The answers themselves are not stored
+anywhere.
 
 ## 6. What the answers mean
 
@@ -739,6 +788,10 @@ asking often costs nothing.
       "keyholder": { "answerMs": 404, "status": "ok", "commit": "6d4b89c",
                      "uptimeSeconds": 397080, "dbMs": 2, "copiesWaiting": 0 } }
   ],
+  "servers": [
+    { "kind": "masterpod", "name": "masterpod", "address": "https://api.anocloud.com",
+      "state": "answers", "since": "...", "detail": "" }
+  ],
   "software": {
     "readAt": "...",
     "validator": { "commit": "6b27427", "running": 25, "main": "6b27427...", "same": true },
@@ -778,6 +831,10 @@ asking often costs nothing.
 - An active row the newest sweep did not ask, one that turned active
   since, has its `id`, `"active": true`, its `address`, and null in every
   other field, until the next sweep.
+- `servers` has one entry for each of our own servers, in the screen's
+  order (section 18.4). They are judged apart from the validators: a
+  sweep with `reachedNobody` still judges them when one of them
+  answered.
 - `software`: for each of the three programs the usual commit, how many
   run it, GitHub main's newest commit, and whether GitHub's begins with
   the usual one. `main` is 40 characters, or null until a read worked.
@@ -960,12 +1017,15 @@ The failure lines, here and on the passkeys page:
    is 13"; "Keyholders up" with `25 of 25`; "Chain position"; "Leader".
    Four in a row, two on a phone.
 3. The problem line, or the line that stands in its place.
-4. The tiles, one for each registry row, in id order: the number, and
-   under it what the tile says (section 6.3). Five in a row on a wide
-   screen, four under 840 pixels, three under 600. The tile's colour is
-   its state's. The tapped tile has a stronger border.
-5. The details of the tapped tile (section 11.5).
-6. The software line and the registry line.
+4. The heading "Our own servers", and under it their tiles (section
+   18.5).
+5. The heading "The validators", and under it the tiles, one for each
+   registry row, in id order: the number, and under it what the tile
+   says (section 6.3). Five in a row on a wide screen, four under 840
+   pixels, three under 600. The tile's colour is its state's. The tapped
+   tile has a stronger border.
+6. The details of the tapped tile (section 11.5).
+7. The software line and the registry line.
 
 The page asks `/api/overview` when it opens and every 15 seconds after.
 
@@ -978,6 +1038,9 @@ The colours:
 | green | `good` |
 | grey | `notActive`; a row no sweep has judged yet, which says a dash |
 
+The tiles of our own servers take the same colours from their own
+states (section 18.2).
+
 The line under the cards is the first of these that fits:
 
 | # | when | the line | colour |
@@ -987,8 +1050,8 @@ The line under the cards is the first of these that fits:
 | 3 | `sweptAt` is null | The first sweep is running. | grey |
 | 4 | `reachedNobody` | The monitor reached no validator in its last sweep. Its own connection may be down. | red |
 | 5 | `stale` | The monitor has not swept since 18:25:40 UTC. | red |
-| 6 | no problems | No problems. Last sweep 18:25:40 UTC. | green |
-| 7 | problems | the sentences of up to three problems, the worst first, then "And 2 more." when there are more, then "Last sweep 18:25:40 UTC." | red when a red state is among the problems, else amber |
+| 6 | no problems, among the validators and among our own servers | No problems. Last sweep 18:25:40 UTC. | green |
+| 7 | problems | the sentences of up to three problems, then "And 2 more." when there are more, then "Last sweep 18:25:40 UTC." Our own servers come first, in the screen's order (section 18.5); then the validators, the worst first | red when one of our own servers has a problem or a red state is among the validators' problems, else amber |
 
 In case 1 the rest of the screen stays as the last answer left it. Before
 the first answer the page shows a moving bar and nothing else.
@@ -1116,7 +1179,9 @@ A failure shows one line under the list (section 11.3).
 
 The monitor is made for a server of its own at Hetzner, monitor1, with
 the name `monitor.anocloud.com`. Five files of this repository put it
-there. Each is the text of the plan's appendix A, word for word.
+there. Each is the text of the first plan's appendix A, word for word,
+but for the last four settings of `network/monitor.env`, which the
+second plan added (section 18).
 
 | file | what it is |
 |---|---|
@@ -1151,7 +1216,7 @@ all of it but `git`:
 node with `--env-file`, and `server/config.js` reads the values once,
 at the start. So a change of the file needs a restart of the unit.
 
-It sets sixteen variables, with the values of the column "on monitor1"
+It sets twenty variables, with the values of the column "on monitor1"
 in section 2. `PGPORT`, `PGPASSWORD` and `DIST_DIR` are not in it, so
 their defaults hold.
 
@@ -1173,6 +1238,10 @@ their defaults hold.
 - `SWEEP_SECONDS=60`, `ANSWER_TIMEOUT_SECONDS=10`, `GITHUB_MINUTES=10`,
   `SESSION_DAYS=30`, `CERTIFICATE_WARN_DAYS=3`,
   `IGNORE_FLOOR_PERCENT=51`: the defaults, written out.
+- `MASTERPOD_URL`, `WALLET_URLS`, `SIGNING_SERVERS=2` and
+  `MONITOR_NAME=monitor1`: our own servers, as in section 2. The first
+  three are the defaults, written out. They are public names: no address
+  of a machine stands in the file.
 
 There is no `.env` on monitor1, and no secret besides the certificate's
 key.
@@ -1295,13 +1364,235 @@ the script's own lines stand those of `nginx -t` and of `systemctl`.
 The script runs twice at the set-up: before the certificate, when it
 skips the TLS site, and after it. It runs again after every pull. Each
 run restarts the unit. The sweeps stop for a few seconds. The sessions
-stay, because they are in the database. The states the screen shows
-are taken from the history again (section 6.4), and a passkey challenge
-that was handed out is forgotten (section 9.2).
+stay, because they are in the database. The validators' states that
+the screen shows are taken from the history again (section 6.4). Those
+of our own servers begin anew, with the first judged sweep after the
+start (section 18.3). A passkey challenge that was handed out is
+forgotten (section 9.2).
 
 When `nginx -t` fails, the script stops before the unit is touched.
 nginx goes on with the sites it had loaded, and the server runs on as
 it was.
+
+## 18. Our own servers
+
+`server/servers/servers.js`. The masterpod, the wallet's names and the signing servers
+are asked in every sweep, and the monitor shows itself beside them. Built from
+`forclaude/monitor-plan-2.md`.
+
+The monitor stands outside every one of them: it is on no private network, and no
+firewall of ours lets it in anywhere. So it asks what anyone can ask, and it sees a pair
+as one thing. When one of the two wallet servers, one of the two doormen or one of the
+three database servers is down, the name still answers, and nothing here turns red.
+
+### 18.1 What is asked
+
+Once in every sweep, at the same time as the validators (section 5):
+
+| what | the GET | what answers it |
+|---|---|---|
+| the masterpod | `<MASTERPOD_URL>/health` | the masterpod on one of the three database servers, through its balancer and one of the two doormen |
+| each wallet name | `<name>/api/config` | that edition's program on one of the two wallet servers, through the wallet's balancer and nginx |
+| each signing server | `<the first wallet name>/api/sign/<n>/public-keys` | signing server n. The wallet's server passes the question on |
+
+- The addresses are settings (section 2): `MASTERPOD_URL`, `WALLET_URLS`, and
+  `SIGNING_SERVERS`, which is a count. They are public names. No address of a machine
+  stands in this repository.
+- Each GET is the one of section 5: the same time limit, the same size limit, the same
+  `User-Agent`. All of them go out at once.
+- A wallet name is asked for `/api/config`, the settings the wallet's own page loads.
+  It is not asked for `/api/health`: nginx on a wallet server hands that path to the
+  program even while the closed page is up, so that the balancer keeps the server.
+  `/api/config` shows what people get.
+- A signing server takes requests from the two wallet servers and from nobody else, so
+  the wallet is the only way to it. The question is the one a browser asks for a new
+  anos account: the two public keys of one pair. It changes nothing. The wallet does
+  not pass a signing server's own `/health` on.
+- The monitor itself is not asked. While its program runs, its state is `running`.
+- That is six requests a minute: one to the masterpod, five to the wallet's names. The
+  masterpod's doormen refuse an address that sends more than 50 requests in 10 seconds.
+  Nothing on another machine changes for these requests, and the monitor's address
+  goes on no list.
+
+What the screen calls each:
+
+| what | its name |
+|---|---|
+| the masterpod | `masterpod` |
+| a wallet name | the first label of its host name: `wallet`, `attestor`, `moderator` |
+| a signing server | `signer` and its number: `signer1`, `signer2` |
+| the monitor itself | `MONITOR_NAME`: `monitor1` on monitor1 |
+
+No two names may be the same. Two that are stop the start with one line, like every
+wrong setting.
+
+### 18.2 The states
+
+Each has one state at a time, the first that fits. "Could not be read" means `too long`
+or `not JSON` of section 5: an answer came, and it carries its HTTP status.
+
+The masterpod:
+
+| # | state | when | the detail |
+|---|---|---|---|
+| 1 | `noAnswer` | no answer, or an answer that could not be read | the short reason of section 5: `timeout`. With the status in front when an answer came: `HTTP 502, not JSON` |
+| 2 | `answers` | HTTP 200, and its `status` is `ok` | empty |
+| 3 | `databaseDown` | its `db` is an object whose `status` is not `ok` | `HTTP 503, database unreachable` |
+| 4 | `otherAnswer` | any other answer | the status, and behind it the answer's own word when it has one: `HTTP 503, FRONT_NOT_SERVING` |
+
+A wallet name:
+
+| # | state | when | the detail |
+|---|---|---|---|
+| 1 | `closedPage` | an answer with HTTP 503 that could not be read | empty |
+| 2 | `noAnswer` | no answer, or any other answer that could not be read | as for the masterpod: `connection refused`, `HTTP 404, not JSON` |
+| 3 | `answers` | HTTP 200 with a JSON object | empty |
+| 4 | `otherAnswer` | any other answer | `HTTP 500, Internal Server Error` |
+
+A signing server. "The wallet answers" means that the first wallet name's own state in
+the same sweep is `answers`:
+
+| # | state | when | the detail |
+|---|---|---|---|
+| 1 | `notAsked` | an answer with HTTP 503 that could not be read | `the wallet answered HTTP 503, not JSON` |
+| 2 | `notAsked` | no answer, or any other answer that could not be read, while the wallet does not answer | `the wallet does not answer`. When an answer came: `the wallet answered HTTP 502, not JSON` |
+| 3 | `noAnswer` | no answer, or any other answer that could not be read, while the wallet answers | the short reason, with the status in front when an answer came: `timeout`, `HTTP 502, not JSON` |
+| 4 | `answers` | HTTP 200 with a text in `walletKey` and a text in `walletPostQuantumKey` | empty |
+| 5 | `noAnswer` | HTTP 502 with a text in `error`: the wallet's own word that it did not reach the signing server | `the wallet says: signing server 1 unavailable` |
+| 6 | `otherAnswer` | any other answer | `HTTP 404, unknown signing server` |
+
+- `closedPage`: nginx on a wallet server shows the closed page. Either the wallet is
+  closed by hand, with the file `/etc/wallet/closed`, or that edition's program behind
+  nginx does not answer. People see the same page in both cases. nginx there answers
+  its own 502, 503 and 504 with that page, as 503. So the status tells it, whatever the
+  page's length.
+- `databaseDown`: the masterpod that answered could not reach the database.
+- `notAsked`: the question did not get past the wallet, so nothing is known about the
+  signing server. HTTP 503 that could not be read is the wallet server's closed page,
+  on this path too.
+- The wallet's server passes on what a signing server sent, status and body as they
+  came. A signing server has nginx in front of its program: when the program does not
+  answer, that nginx answers 502 with its own page, which is not JSON. So while the
+  wallet answers, such an answer shows as `noAnswer`: the signing server's machine is
+  up, and its program is not.
+- A signing server that hangs shows as `noAnswer` with `timeout`: the wallet's server
+  waits for it up to two minutes, and the monitor's own limit ends the wait first.
+- An answer's own word is its `code`, its `error.code` or its `error`, the first of the
+  three that is a text, cut at 60 characters.
+- When no database server passes the doormen's check, the doormen themselves answer 503
+  with a JSON body that carries the code `FRONT_NOT_SERVING` (seen 2026-10-29, before
+  the masterpod was on the servers). That shows as `otherAnswer`. Where in the body the
+  code stands was not looked at; the detail names it when it stands at one of the three
+  places.
+- The monitor itself has the state `running`, since its program started.
+
+The colours: `answers` and `running` are green. `notAsked` is grey, and so is one that
+no sweep has judged yet. The others are red. There is no amber here.
+
+### 18.3 The rule of two sweeps, and the sweep that is not judged
+
+- The two-sweep rule of section 6.4 holds: what the screen shows changes when two
+  sweeps in a row work out the same new state. The state began at the time of the
+  first of the two, and its detail is that sweep's.
+- After a start, each takes the state of its first judged sweep at once, with that
+  sweep's time.
+- A sweep in which nothing came back from anywhere is not judged: no validator
+  answered, and none of these. The monitor's own connection may be down. Nothing the
+  screen shows changes. For this, an answer that came and could not be read counts as
+  one that came.
+- In every other sweep they are judged, also in one that reached no validator.
+- Nothing is kept in the database: there is no table for these states and no history.
+  After a restart of the monitor, `since` begins anew.
+- A change prints one log line: `server signer2: answers -> noAnswer (timeout)`, with
+  the detail in brackets when there is one.
+- While there is no registry at all, there is no sweep (section 5), and these are not
+  asked either.
+
+### 18.4 The overview
+
+`GET /api/overview` carries them as `servers`, in the screen's order: the masterpod,
+the wallet names in the order of `WALLET_URLS`, the signing servers by number, the
+monitor itself.
+
+```json
+"servers": [
+  { "kind": "masterpod", "name": "masterpod", "address": "https://api.anocloud.com",
+    "state": "answers", "since": "2026-11-21T21:28:55.100Z", "detail": "" },
+  { "kind": "wallet", "name": "wallet", "address": "https://wallet.anocloud.com",
+    "state": "answers", "since": "...", "detail": "" },
+  { "kind": "signer", "name": "signer1", "address": "https://wallet.anocloud.com/api/sign/1",
+    "state": "answers", "since": "...", "detail": "" },
+  { "kind": "monitor", "name": "monitor1", "address": null,
+    "state": "running", "since": "...", "detail": "" }
+]
+```
+
+- `kind` is `masterpod`, `wallet`, `signer` or `monitor`.
+- `address` is the place that is asked, without the path of the question. It is null
+  for the monitor itself.
+- `state`, `since` and `detail` are what the screen shows (18.3). They are null until
+  the first judged sweep after a start.
+- For the monitor itself `since` is when its program started.
+
+### 18.5 The page
+
+Under the problem line and above the validators' tiles: the heading "Our own servers",
+and one tile for each entry of `servers`, in that order. The validators' tiles have a
+heading too since then, "The validators".
+
+- A tile shows the name and, under it, what its state says. It has its state's colour.
+  It is no button: nothing happens on a tap.
+- On a wide screen the tiles stand in one row, as many as fit, each at least 104 pixels
+  wide. Under 840 pixels they are four in a row and under 600 three, like the
+  validators' tiles. A tile is 64 pixels high, like a validator's.
+- A mouse over a tile shows a hint: the address, and behind it the detail when there is
+  one, `https://api.anocloud.com: timeout`. The monitor's own tile has none.
+- `since` is not shown.
+
+What a tile says:
+
+| state | the tile |
+|---|---|
+| `answers` | Answers |
+| `running` | Running |
+| `noAnswer` | No answer |
+| `databaseDown` | Database down |
+| `closedPage` | Closed page |
+| `otherAnswer` | Other answer |
+| `notAsked` | Not asked |
+| not judged yet | – |
+
+The problem line (section 11.4) speaks for both groups. Its cases 6 and 7:
+
+| # | when | the line | colour |
+|---|---|---|---|
+| 6 | no validator has a problem, and none of our own servers is red | No problems. Last sweep 18:25:40 UTC. | green |
+| 7 | problems | the sentences of up to three problems, then "And 2 more." when there are more, then "Last sweep 18:25:40 UTC." Our own servers come first, in the screen's order; then the validators, the worst first | red when one of our own servers is red or a red state is among the validators' problems, else amber |
+
+A grey tile is no problem and has no sentence.
+
+The sentences. The masterpod is called "The masterpod", a wallet name by its host name
+in full, and a signing server by its name. The detail stands in brackets behind, when
+there is one:
+
+| state | sentence |
+|---|---|
+| `noAnswer` | The masterpod does not answer (timeout). |
+| `databaseDown` | The masterpod answers, its database does not (HTTP 503, database unreachable). |
+| `closedPage` | wallet.anocloud.com shows the wallet's closed page. |
+| `otherAnswer` | signer2 gives another answer than the monitor expects (HTTP 404, unknown signing server). |
+
+### 18.6 What it cannot see
+
+- Which machine of a pair is down: wallet1 or wallet2, prodedge1 or prodedge2, prod1,
+  prod2 or prod3. A pair answers under its one name as long as one of its machines
+  works.
+- Whether a signing server can sign. The question it is asked needs no key, and
+  Google's key service is not asked.
+- A signing server while the wallet does not answer. Its tile is grey then.
+- The two watchers and listener1. Nothing of theirs answers anyone from outside.
+- What was before the monitor's last restart. `since` begins anew, and only the log
+  holds the changes.
 
 ## Notes
 
@@ -1949,3 +2240,61 @@ Outside the repository:
   programs we run. It says what the monitor is and names the plan. It
   says that the plan names the GitHub repository, not that the
   repository is there: when step 4 was built, it was not.
+
+### Step 5 (2026-11-22)
+
+The code:
+
+- Every place that the second plan names in the eleven code files and
+  in the README is the plan's block, byte for byte. Nothing of it was
+  reworded. No place the plan does not name was touched, comments too,
+  but for the three sentences at the end of these notes.
+- No package was added and no `npm install` ran. `package.json`, the
+  lock file, `angular.json`, `db/schema.sql` and every file the plan
+  does not name are as step 4 left them.
+- The build of the check wrote `main-HR27YDF5.js`. `styles-P364KAEV.css`
+  kept its name, since no style outside a component changed. The
+  plan's own trial gave the same two names.
+- The script of the made-up sweeps is not in this repository: no test
+  file is, as the plan has it. It is one of the plan's tools, kept on
+  the machine of the build outside every repository.
+- Run again later the same day, that script gave 49 of its 51 results
+  in six runs of seven, with the monitor's files unchanged. The two
+  results are one check and its echo. The script's stand-in for a
+  masterpod whose port is closed kept one fresh connection open, and
+  answered one more request on it. In a copy of the script whose
+  stand-ins close every connection, all 51 held in eight runs of
+  eight. No expected value was changed.
+
+This file:
+
+- Section 18 stands as the second plan has it, line for line, in front
+  of the notes. So its lines are as long as the plan's, up to 88
+  characters, where the rest of this file keeps to about 72. No word
+  was changed for the fit.
+- The opening's paragraph for this step, these notes, and the one
+  sentence of section 12.5 at the end of these notes are the build's
+  own words. Every other change in this file is the plan's: its
+  sixteen places and its section 18.
+- The notes of steps 1 to 4 stand as they were written. Step 4's speak
+  of the settings file as it was then: sixteen names, and the first
+  plan's appendix byte for byte. Since this step it has twenty names
+  (section 12.1).
+
+Brought in line on the operator's word:
+
+- Three sentences that the plan does not name were left short by this
+  step. On the operator's word they were brought in line before the
+  commit.
+- Two are in the README, under "Running it on this machine". One said
+  that the monitor reads the real registry and sweeps the real
+  network. It now says too that the monitor asks our real servers
+  there, as section 2 does. The other said that the server prints one
+  line when a validator's state changes. It now names the line for
+  one of our own servers as well (section 18.3).
+- The third is in section 12.5. It said that after a run of the
+  install script the states the screen shows are taken from the
+  history again. It now says that this holds for the validators'
+  states, and that those of our own servers begin anew (section 18.3).
+- So the README differs from the copy in which the plan was tried by
+  those two sentences, and by nothing else.

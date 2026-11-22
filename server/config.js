@@ -87,6 +87,14 @@ export const config = Object.freeze({
   certificateWarnDays: integer('CERTIFICATE_WARN_DAYS', 3),
   /** The validators' own floor, IGNORE_FLOOR_PERCENT in anossoftware's network/testnet.env. The floor on the screen is worked out from it, so the two must agree. */
   ignoreFloorPercent: percent('IGNORE_FLOOR_PERCENT', 51),
+  /** Our own servers (docs/schemas.md section 18). The masterpod's public address; a trailing slash is dropped. */
+  masterpodUrl: text('MASTERPOD_URL', 'https://api.anocloud.com').replace(/\/+$/, ''),
+  /** The wallet's public names, one for each edition. The first one is also the way to the signing servers. */
+  walletUrls: list('WALLET_URLS', 'https://wallet.anocloud.com,https://attestor.wallet.anocloud.com,https://moderator.wallet.anocloud.com'),
+  /** How many signing servers the wallet's first name passes a question on to: SIGNING_SERVER_URLS in the wallet's network/wallet.env has that many. */
+  signingServers: integer('SIGNING_SERVERS', 2),
+  /** What the monitor's own tile calls this server. */
+  monitorName: text('MONITOR_NAME', 'this machine'),
   /** The Angular build the server hands out. */
   distDir: process.env.DIST_DIR ?? 'dist/monitor/browser',
   /** The name the monitor gives in every request it makes, so a banker who reads a doorman's access log sees what asks every minute. */

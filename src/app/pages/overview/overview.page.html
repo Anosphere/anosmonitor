@@ -21,6 +21,17 @@
 }
 
 @if (overview() !== null) {
+  <h2 class="heading">{{ w.own.title }}</h2>
+  <section class="tiles own" [attr.aria-label]="w.own.title">
+    @for (tile of ownTiles(); track tile.name) {
+      <div class="tile still" [class]="tile.colour" [attr.title]="tile.hint">
+        <span class="name">{{ tile.name }}</span>
+        <span class="says">{{ tile.says }}</span>
+      </div>
+    }
+  </section>
+
+  <h2 class="heading">{{ w.overview.tiles }}</h2>
   <section class="tiles" [attr.aria-label]="w.overview.tiles">
     @for (tile of tiles(); track tile.id) {
       <button

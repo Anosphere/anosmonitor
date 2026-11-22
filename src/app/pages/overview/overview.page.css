@@ -80,6 +80,34 @@
   text-align: center;
 }
 
+/* The heading over each of the two groups of tiles: our own servers, the validators. */
+.heading {
+  margin: 16px 0 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Our own servers: as many in a row as fit, so that on a wide screen they stand in one row. Under 840 pixels the validators' rules below take over: four in a row, three on a phone. */
+.own {
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+}
+
+/* A tile of our own servers is no button: nothing happens on a tap. A button counts its padding and its border into its height by itself; this one is told to, so both kinds of tile are 64 pixels high. */
+.still {
+  box-sizing: border-box;
+  cursor: default;
+}
+
+.name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
 .details {
   margin-top: 16px;
 }

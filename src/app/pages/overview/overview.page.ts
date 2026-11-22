@@ -34,6 +34,19 @@ function colourOf(state: string | null): Colour {
   return 'grey';
 }
 
+/** Our own servers (docs/schemas.md section 18.2): the states in which one does not work. */
+const OWN_RED = new Set(['noAnswer', 'databaseDown', 'closedPage', 'otherAnswer']);
+
+/** The states in which one works. */
+const OWN_GREEN = new Set(['answers', 'running']);
+
+/** The colour of a state of our own servers. Grey is `notAsked`, and one no sweep has judged yet. */
+function ownColourOf(state: string | null): Colour {
+  if (state !== null && OWN_GREEN.has(state)) return 'green';
+  if (state !== null && OWN_RED.has(state)) return 'red';
+  return 'grey';
+}
+
 /** One of the four cards on top: its name, its value, and the small line under the value, or null. */
 interface Card {
   label: string;
@@ -54,10 +67,19 @@ interface Tile {
   colour: Colour;
 }
 
+/** One tile of our own servers: its name, what the tile says, its colour, and the hint a mouse shows over it: the address that is asked, with the detail behind it. The monitor itself has no hint. */
+interface OwnTile {
+  name: string;
+  says: string;
+  colour: Colour;
+  hint: string | null;
+}
+
 /**
- * The overview (docs/schemas.md section 11.4), from top to bottom under
- * the shell's bar: the four cards, the problem line, the tiles, the
- * details of the tapped tile, the software line and the registry line.
+ * The overview (docs/schemas.md sections 11.4 and 18.5), from top to
+ * bottom under the shell's bar: the four cards, the problem line, the
+ * tiles of our own servers, the validators' tiles, the details of the
+ * tapped tile, the software line and the registry line.
  *
  * The page asks GET /api/overview when it opens and every 15 seconds
  * after. One answer holds the whole screen; everything here is worked out
@@ -130,10 +152,13 @@ export class OverviewPage {
    *   3. the first sweep after a start has not ended (grey)
    *   4. the newest sweep reached no validator (red)
    *   5. the monitor has not swept for three sweeps' time (red)
-   *   6. no problems (green)
-   *   7. the problems: the sentences of up to three, the worst first, then
-   *      how many more, then the last sweep's time. Red when a red state is
-   *      among them, else amber. The server orders them, red before amber.
+   *   6. no problems, among the validators and among our own servers
+   *      (green)
+   *   7. the problems: the sentences of up to three, then how many more,
+   *      then the last sweep's time. Our own servers come first, in the
+   *      screen's order; then the validators, as the server orders them,
+   *      red before amber. Red when one of our own servers has a problem
+   *      or a red state is among the validators', else amber.
    */
   protected readonly notice = computed<Notice | null>(() => {
     const overview = this.overview();
@@ -151,19 +176,36 @@ export class OverviewPage {
     const swept = clock(overview.sweptAt, now);
     if (overview.stale) return { colour: 'red', text: t.stale(swept) };
     const { problems, validators } = overview;
-    if (problems.length === 0) return { colour: 'green', text: t.noProblems(swept) };
+    // An answer of a server from before our own servers were built carries
+    // no `servers`.
+    const own = (overview.servers ?? []).filter(({ state }) => state !== null && OWN_RED.has(state));
+    if (problems.length === 0 && own.length === 0) return { colour: 'green', text: t.noProblems(swept) };
 
     // The certificate's days are the newest sweep's. They are not known when
     // the doorman did not answer that sweep while the screen still shows the
     // state of the sweeps before.
-    const sentences = problems.slice(0, 3).map(({ validatorId, state }) => {
-      const doorman = validators.find(({ id }) => id === validatorId)?.doorman;
-      return words.problem(state, validatorId, doorman ? doorman.certificateDaysLeft : undefined);
-    });
-    if (problems.length > 3) sentences.push(t.more(problems.length - 3));
+    const all = [
+      ...own.map(({ kind, name, address, state, detail }) => words.own.problem(state ?? '', kind, name, address, detail ?? '')),
+      ...problems.map(({ validatorId, state }) => {
+        const doorman = validators.find(({ id }) => id === validatorId)?.doorman;
+        return words.problem(state, validatorId, doorman ? doorman.certificateDaysLeft : undefined);
+      }),
+    ];
+    const sentences = all.slice(0, 3);
+    if (all.length > 3) sentences.push(t.more(all.length - 3));
     sentences.push(t.lastSweep(swept));
-    return { colour: problems.some(({ state }) => RED.has(state)) ? 'red' : 'amber', text: sentences.join(' ') };
+    return { colour: own.length > 0 || problems.some(({ state }) => RED.has(state)) ? 'red' : 'amber', text: sentences.join(' ') };
   });
+
+  /** The tiles of our own servers, in the order the server gives them. One no sweep has judged yet says a dash. */
+  protected readonly ownTiles = computed<OwnTile[]>(() =>
+    (this.overview()?.servers ?? []).map(({ name, address, state, detail }) => ({
+      name,
+      says: state === null ? words.dash : words.own.state(state),
+      colour: ownColourOf(state),
+      hint: address === null ? null : detail ? `${address}: ${detail}` : address,
+    })),
+  );
 
   /** The tiles, one for each registry row, in id order. A row no sweep has judged yet says a dash. */
   protected readonly tiles = computed<Tile[]>(() =>
@@ -280,7 +322,7 @@ export class OverviewPage {
   }
 
   /**
-   * The tile that is tapped at the start (section 11.4, item 5): the first
+   * The tile that is tapped at the start (section 11.4, item 6): the first
    * problem's, or the first row's when there is no problem. Chosen once, at
    * the first answer that carries a sweep, so the choice is made from
    * states that are known. After that only a tap changes it, unless the

@@ -1,5 +1,6 @@
 import { config } from '../config.js';
 import { currentRegistry, whenRegistry } from '../registry/registry.js';
+import { askOwnServers, judgeOwnServers } from '../servers/servers.js';
 import { ask, isObject } from './ask.js';
 import { closeState, findOpenStates, recordSweep, writeState } from './history.js';
 import { networkView } from './network.js';
@@ -34,6 +35,11 @@ import { isCounted, keyholderUp, twoSweeps, workOut } from './states.js';
  *      history (server/sweep/history.js).
  *   6. The numbers on top are counted, the newest sweep is kept in memory,
  *      and its row goes into the sweeps table.
+ *
+ * Our own servers (docs/schemas.md section 18) are asked in the same
+ * sweep, at the same time as the validators in step 2, and judged right
+ * after the asking. All of that is in server/servers/servers.js; this file
+ * only calls it. How long the asking took counts both.
  *
  * The requests are far under the doormen's limit: two a minute for each
  * doorman, against five a second.
@@ -332,10 +338,11 @@ async function sweepOnce() {
   await closeNotActive(active, sweptAt);
 
   const started = performance.now();
-  const results = await askEveryone(active);
+  const [results, own] = await Promise.all([askEveryone(active), askOwnServers()]);
   const tookMs = Math.round(performance.now() - started);
   const reached = results.filter((result) => result.answered).length;
   const reachedNobody = reached === 0;
+  judgeOwnServers(own, sweptAt, reached);
 
   let view = null;
   if (reachedNobody) {
