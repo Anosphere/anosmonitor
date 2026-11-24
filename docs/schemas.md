@@ -4,10 +4,12 @@ The settings, the tables, the states and the rules of the monitor, and at
 the end the notes: every choice the build made where the plan is silent.
 
 Built from `~/Desktop/Z-TestNet/forclaude/monitor-plan-1.md` (FINAL,
-2026-11-17), in that plan's four steps, and from
+2026-11-17), in that plan's four steps, from
 `~/Desktop/Z-TestNet/forclaude/monitor-plan-2.md`, which added our own
-servers. Sections 1 to 7 and 9 to 12 carry the first plan's numbers, and
-section 18 the second plan's, so "section 6.3" means the same here and
+servers, and from `~/Desktop/Z-TestNet/forclaude/monitor-plan-3.md`,
+which added the versions of the validator's code. Sections 1 to 7 and 9
+to 12 carry the first plan's numbers, section 18 the second plan's and
+section 19 the third plan's, so "section 6.3" means the same here and
 there. The numbers 13 to 17 are sections of the first plan that are not
 in this file.
 The plan's section 8, what cannot be seen from outside, holds nothing
@@ -89,6 +91,37 @@ real network and a look at the page among them, is in the plan's
 opening. Not tried by anyone: monitor1 itself, a phone, Safari, and a
 real outage. No server of ours was made to fail.
 
+**Step 6, the versions of the validator's code, 2026-11-24.** The third
+plan, `forclaude/monitor-plan-3.md`, in one step. No new file. For the
+validator's repository the read of GitHub asks for the version tags as
+well and keeps them in memory, each active validator's entry in the
+overview carries `version`, and the page shows the version in three
+places: beside the number on each validator's tile, in the row
+"Software" of the details, and in a new line under the software line,
+the versions line. Section 19 is the record of it. After this step the
+page says which version of the validator's code each validator runs.
+No package was added, the lock file did not move, no setting was
+added, and `db/schema.sql` is as it was: nothing of this is kept in
+the database. Checked with `node --check` on every file under
+`server/`, with `npx ng build`, which ended without an error or a
+warning, and with made-up tags: the reader of the tags played against
+a made-up repository on the machine of the build, with a lightweight
+and an annotated tag, two tags on one commit, five names that are no
+version, a tag that is taken away, a read that fails and the next one
+that works. That gave 22 results, all as expected. Two reads more:
+every changed place against the plan, and the eight code files and
+the README, byte for byte, against the copy in which the plan had been
+tried. Neither found a difference. Then, on the operator's word, four
+comments that the plan does not name were brought in line with this
+step: one in the overview page's style file, and one each in
+`server/index.js`, `server/config.js` and `network/monitor.env`
+(Notes, Step 6). With nothing else: the build did not start the
+monitor, made no database and did not run `ng serve`, and no browser
+has shown its page. What was tried in that copy before the build, a
+read of the real tags, a sweep of the real network and a look at the
+page among them, is in the plan's opening. Not tried by anyone:
+monitor1 itself, a phone and Safari.
+
 ## 1. The project
 
 A small server of its own asks every doorman's public `/health` once a
@@ -117,7 +150,7 @@ monitorsoftware/
     sweep/network.js                  the network's view
     sweep/states.js                   one validator's state; the two-sweep rule
     sweep/history.js                  the two history tables and their log lines
-    software/github.js                the newest commits on GitHub main
+    software/github.js                the newest commits on GitHub main; the version tags
     servers/servers.js                our own servers: what is asked, the states, what the screen shows
     auth/webauthn.js                  the passkey checks
     auth/challenges.js                the challenges, in memory
@@ -160,11 +193,11 @@ differs: tslib is 2.9.1 here and 2.8.1 in the wallet (Notes, Step 3).
 
 The start (`server/index.js`), in order: the settings; `db/schema.sql`
 applied; the sessions that are past their time deleted; the registry (the
-kept copy, then GitHub); the newest commits on GitHub; the sweeps; the
-listen on `PORT`, on 127.0.0.1. It prints where it listens, the origins,
-the relying-party id, the database, the registry address, the sweep's two
-numbers and the build folder. A database that cannot be reached stops the
-start with one line.
+kept copy, then GitHub); the newest commits and the version tags on
+GitHub; the sweeps; the listen on `PORT`, on 127.0.0.1. It prints where
+it listens, the origins, the relying-party id, the database, the registry
+address, the sweep's two numbers and the build folder. A database that
+cannot be reached stops the start with one line.
 
 `GET /api/health`, open to anyone:
 `{ "status": "ok", "lastSweepAt": <time or null> }`. `lastSweepAt` is
@@ -189,12 +222,12 @@ hands to node with `--env-file` (section 12.1).
 | `PGUSER` | not set (the pool then takes the logged-in user) | `monitor` | |
 | `PGPASSWORD` | not set | not set | never needed on monitor1 |
 | `REGISTRY_URL` | the same as on monitor1 | `https://raw.githubusercontent.com/Anosphere/anosvalidator/main/network/testnet.registry.json` | the registry file on GitHub `main` |
-| `VALIDATOR_REPO` | the same | `https://github.com/Anosphere/anosvalidator.git` | whose `main` the validators' commit is compared with |
+| `VALIDATOR_REPO` | the same | `https://github.com/Anosphere/anosvalidator.git` | whose `main` the validators' commit is compared with, and whose tags name the versions of the validator's code (section 19) |
 | `DOORMAN_REPO` | the same | `https://github.com/Anosphere/anosvalidatornode.git` | the same for the doormen |
 | `KEYHOLDER_REPO` | the same | `https://github.com/Anosphere/anoskeyholder.git` | the same for the keyholders |
 | `SWEEP_SECONDS` | `60` | `60` | from the start of one sweep to the start of the next |
 | `ANSWER_TIMEOUT_SECONDS` | `10` | `10` | how long one answer may take |
-| `GITHUB_MINUTES` | `10` | `10` | how often the registry and the three commits are read |
+| `GITHUB_MINUTES` | `10` | `10` | how often the registry, the three commits and the version tags are read |
 | `SESSION_DAYS` | `30` | `30` | how long a sign-in lasts |
 | `CERTIFICATE_WARN_DAYS` | `3` | `3` | a doorman's certificate with fewer days left is a problem |
 | `IGNORE_FLOOR_PERCENT` | `51` | `51` | the validators' own number, in `anossoftware/network/testnet.env`; the two must agree |
@@ -576,7 +609,8 @@ memory, and the next sweep goes on.
 with 15 seconds and with no prompt for a password (`GIT_TERMINAL_PROMPT=0`).
 No GitHub token. The 40 characters are kept in memory with the time
 (`githubMains()`). A read that fails keeps the older value and logs one
-line.
+line. For the validator's repository the same call also asks for the
+version tags (section 19.2).
 
 A validator reports a short commit. It is "the newest on GitHub main" when
 GitHub's 40 characters begin with it.
@@ -585,8 +619,9 @@ The page's sentences (section 11.4) are built from, for each of the three
 programs: the usual commit, how many run it, GitHub's newest commit or
 null, and whether the two are the same (`softwareLine(usual)`).
 
-During a pull round this line and the amber "Other software" tiles are the
-tick sheet: the tiles turn as each banker pulls.
+During a pull round this line, the versions line (section 19.4) and the
+amber "Other software" tiles are the tick sheet: the tiles turn as each
+banker pulls.
 
 ## 9. The door
 
@@ -763,8 +798,8 @@ The page shows what the validators answer as text only, never as HTML.
 
 `server/overview/overview.routes.js`. `GET /api/overview`, signed in. One
 answer holds the whole screen. It is put together from memory (the
-registry in use, the newest sweep, the newest commits on GitHub main), so
-asking often costs nothing.
+registry in use, the newest sweep, the newest commits on GitHub main and
+the version tags), so asking often costs nothing.
 
 ```json
 {
@@ -786,7 +821,8 @@ asking often costs nothing.
                   "uptimeSeconds": 397080, "dbMs": 17, "counted": true, "position": 639,
                   "recordHash": "5efff567...", "leader": 22, "ignored": [] },
       "keyholder": { "answerMs": 404, "status": "ok", "commit": "6d4b89c",
-                     "uptimeSeconds": 397080, "dbMs": 2, "copiesWaiting": 0 } }
+                     "uptimeSeconds": 397080, "dbMs": 2, "copiesWaiting": 0 },
+      "version": "v1" }
   ],
   "servers": [
     { "kind": "masterpod", "name": "masterpod", "address": "https://api.anocloud.com",
@@ -825,7 +861,9 @@ asking often costs nothing.
   the two tables in section 5 name. `doorman` is null when port 3000 gave
   no answer, and `reason` is the short reason then. `worker` and
   `keyholder` are null when there was none. `keyholderUp` is null for a
-  row with no keyholder check.
+  row with no keyholder check. `version` is the name of the version of
+  the validator's code that the newest sweep's commit is, or null
+  (section 19.3).
 - An inactive row has its `id`, `"active": false`, `"state": "notActive"`,
   and nothing else.
 - An active row the newest sweep did not ask, one that turned active
@@ -1020,12 +1058,14 @@ The failure lines, here and on the passkeys page:
 4. The heading "Our own servers", and under it their tiles (section
    18.5).
 5. The heading "The validators", and under it the tiles, one for each
-   registry row, in id order: the number, and under it what the tile
-   says (section 6.3). Five in a row on a wide screen, four under 840
-   pixels, three under 600. The tile's colour is its state's. The tapped
-   tile has a stronger border.
+   registry row, in id order: the number, beside it the version of the
+   validator's code (section 19.4), and under them what the tile says
+   (section 6.3). Five in a row on a wide screen, four under 840 pixels,
+   three under 600. The tile's colour is its state's. The tapped tile
+   has a stronger border.
 6. The details of the tapped tile (section 11.5).
-7. The software line and the registry line.
+7. The software line, the versions line (section 19.4) and the registry
+   line.
 
 The page asks `/api/overview` when it opens and every 15 seconds after.
 
@@ -1122,7 +1162,7 @@ On a phone the label stands over its value.
 | Doorman running for | from the doorman's uptime |
 | Certificate | days left, and the day it ends: `4.5 days left, ends 22 Nov`; "no certificate" when the doorman answered and has none |
 | Answer time | milliseconds: `413 ms`; when port 3000 gave no answer, the short reason: `no answer: timeout` |
-| Software | the three commits: `validator 6b27427, doorman 4cfade2, keyholder 6d4b89c` |
+| Software | the three commits, the validator's with the name of its version in front when it has one (section 19.4): `validator v1 (6b27427), doorman 4cfade2, keyholder 6d4b89c` |
 | Registry | the registry the doorman read, with its count of active rows, and the one the validator applied: `doorman 1076ef27, 25 active; validator 1076ef27` |
 | Keyholder | Up or Down, running for, shares waiting: `Up, running for 4 days, 0 shares waiting` |
 | Address | the registry address |
@@ -1203,8 +1243,9 @@ all of it but `git`:
   by `monitor`, with its packages and with the page's build in
   `dist/monitor/browser`;
 - Node.js 24 at `/usr/bin/node`;
-- `git`, which the server calls for the newest commits (section 7). The
-  lines install none: they clone with the one a new server brings;
+- `git`, which the server calls for the newest commits and the version
+  tags (sections 7 and 19.2). The lines install none: they clone with
+  the one a new server brings;
 - Postgres on the same server, with the user `monitor` and the database
   `monitor`, which that user owns;
 - nginx;
@@ -1593,6 +1634,150 @@ there is one:
 - The two watchers and listener1. Nothing of theirs answers anyone from outside.
 - What was before the monitor's last restart. `since` begins anew, and only the log
   holds the changes.
+
+## 19. The versions of the validator's code
+
+`server/software/github.js`, `server/overview/overview.routes.js`, and the overview
+page. The page says which version of the validator's code each validator runs: v1, v2,
+v3. Built from `forclaude/monitor-plan-3.md`.
+
+### 19.1 What a version is
+
+A version is one commit on `main` of the validator's repository that validators run, in
+the operator's naming of 2026-11-22: a new version begins when one validator runs code
+that the others do not run yet. On GitHub a version is a git tag of its name on that
+commit. On 2026-11-24:
+
+| version | tag | commit |
+|---|---|---|
+| v1 | `v1` | `6b27427` |
+| v2 | `v2` | `8d1c5cd` |
+| v3 | `v3` | `01c718d` |
+
+- The tag stands on the commit that a validator's health answer shows. For a version
+  that came by a pull request that is the merge on `main`, not the build's own commit.
+- A tag's name is `v` and a whole number above 0, with no zero in front: `v4`, `v12`.
+  Any other tag is no version: `v0`, `v05`, `v3-rc1`, `testnet-1`.
+- A tag may be lightweight or annotated.
+- The operator makes the tag, right after the version's merge, from a computer that
+  pushes to GitHub. The monitor makes none.
+- Only the validator's code has versions here. The doorman's and the keyholder's
+  commits show as commits.
+
+### 19.2 The read
+
+The read of section 7 asks for one thing more, for the validator's repository alone:
+
+```text
+git ls-remote <VALIDATOR_REPO> refs/heads/main 'refs/tags/v*'
+```
+
+GitHub's answer on 2026-11-24:
+
+```text
+01c718dab2e020d3e4767e167dddc4bf8a78ce28	refs/heads/main
+6b27427976e0d62d382f67f3c24650693e7ef1e4	refs/tags/v1
+8d1c5cd33d7588d70359a88cde45d2e4133384d8	refs/tags/v2
+01c718dab2e020d3e4767e167dddc4bf8a78ce28	refs/tags/v3
+```
+
+- It is the call of section 7: at the start and every `GITHUB_MINUTES`, with the same
+  time limit, no token and no prompt for a password.
+- An annotated tag has two lines: its own object, and behind `^{}` the commit it stands
+  on. The commit is taken.
+- The list is kept in memory: for each version its name, its number and the 40
+  characters of its commit. Every read that worked replaces the list as a whole. So a
+  tag that is taken away on GitHub is gone here within `GITHUB_MINUTES`.
+- A read that fails keeps the older list and logs the one line of section 7.
+- Until the first read after a start has worked, no version is known.
+- Nothing of it is kept in the database, and there is no new setting.
+- The doorman's and the keyholder's repositories are asked for `refs/heads/main` alone,
+  as before.
+
+A validator's version (`versionOf`) is the tag whose 40 characters begin with the
+validator's short commit. That is the comparison section 7 makes for "the newest on
+GitHub main". When two tags stand on one commit, the one with the higher number is
+taken. There is no version when no tag fits and when the commit is not known.
+
+### 19.3 The overview
+
+`GET /api/overview` (section 10) carries `version` in each active row's entry:
+
+```json
+"validators": [
+  { "id": 5, "active": true, "state": "otherSoftware",
+    "worker": { "commit": "6b27427" },
+    "version": "v1" }
+]
+```
+
+- `version` is the name of the version that the commit of the newest sweep's `worker`
+  is.
+- It is null when that commit has no version tag, when there is no `worker`, and until
+  a read of the tags has worked.
+- It is worked out at each ask, from the newest sweep and the list in memory. It is no
+  state: the two-sweep rule does not touch it, and nothing of it goes into the history.
+- An inactive row carries none.
+- Nothing else of the answer changes.
+
+### 19.4 The page
+
+The version shows in three places.
+
+**A validator's tile.** Beside the number, in smaller letters: the version's name,
+`v2`. A commit that has no version tag shows as its first 7 characters. When no commit
+is known, nothing stands there. A tile is as high as before. On a tile too narrow for
+the number and the version in one line, the version goes under the number.
+
+**The details of one validator** (section 11.5), the row "Software". The version's name
+stands in front of the validator's commit, and the commit goes into brackets:
+`validator v1 (6b27427), doorman 4cfade2, keyholder 6d4b89c`. With no version tag the
+row is as before: `validator 6b27427, doorman 4cfade2, keyholder 6d4b89c`.
+
+**The versions line.** A line of its own, under the software line and above the
+registry line. It is put together on the page from the newest sweep's commits and
+their versions:
+
+- One group for each version, and one for each commit that has no version tag. A
+  validator whose commit is not known is in no group.
+- The versions come first, the highest number first. Then the commits with no tag, the
+  one most validators run first; of two that as many run, the one that sorts first.
+- A group reads: its name, "on", and how many validators run it. A commit with no tag
+  is named by its first 7 characters, in the code font.
+- A group names its validators in brackets. The group of the commit most validators
+  run, `software.validator.commit`, names none.
+- When every active validator is in one group, the line reads "all 25 run" and the
+  name.
+- When no commit is known, the line reads "Validator versions: –".
+
+| what the newest sweep saw | the line |
+|---|---|
+| as on 2026-11-24 | Validator versions: v3 on 1 (validator 1), v2 on 20, v1 on 4 (validators 5, 9, 11, 23). |
+| all 25 on v3 | Validator versions: all 25 run v3. |
+| a round half done | Validator versions: v4 on 12 (validators 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), v3 on 13. |
+| validator 1 on a commit with no tag | Validator versions: v3 on 24, `ab12cd3` on 1 (validator 1). |
+| no tag was read | Validator versions: `8d1c5cd` on 20, `6b27427` on 4 (validators 5, 9, 11, 23), `01c718d` on 1 (validator 1). |
+| validator 7 does not answer, the other 24 on v2 | Validator versions: v2 on 24. |
+
+Nothing else of the page changes. The software line (section 11.4) still names commits.
+The states and their colours are those of section 6.3, and the problem line is as it
+was. A validator on a newer version than most is amber, "Other software", like one on
+an older version: that state compares commits and knows no order. The version on the
+tile says which of the two it is.
+
+### 19.5 What it does not do
+
+- It makes no tag. A version that runs without a tag shows as its commit until the tag
+  is on GitHub, and up to `GITHUB_MINUTES` longer.
+- It does not read `worker.version.tag`, which a validator's own health answer carries:
+  the tag of its checkout, read when its program starts. A validator fills that field
+  only at a pull after the tag was made and a restart. So the versions that validators
+  ran before their tags were made would never show.
+- It names no version of the doorman's or the keyholder's code.
+- It knows newer from older only in the order of the versions line. No state, no colour
+  and no sentence of the problem line follows from it.
+- After a start, until GitHub has been read once, no version is known, and the three
+  places show commits.
 
 ## Notes
 
@@ -2298,3 +2483,63 @@ Brought in line on the operator's word:
   states, and that those of our own servers begin anew (section 18.3).
 - So the README differs from the copy in which the plan was tried by
   those two sentences, and by nothing else.
+
+### Step 6 (2026-11-24)
+
+The code:
+
+- Every place that the third plan names in the eight code files and
+  in the README is the plan's block, byte for byte. Nothing of it was
+  reworded. No place the plan does not name was touched, comments
+  too, but for the four comments at the end of these notes.
+- No file is new. No package was added and no `npm install` ran.
+  `package.json`, the lock file, `angular.json` and `db/schema.sql`
+  are as step 5 left them. So is every other file the plan does not
+  name, but for one comment each in `server/index.js`,
+  `server/config.js` and `network/monitor.env`.
+- The build of the check wrote `main-SU3E4SK7.js`. `styles-P364KAEV.css`
+  kept its name, since no style outside a component changed. The
+  plan's own trial gave the same two names.
+- The script of the made-up tags is not in this repository: no test
+  file is, as the plan has it. It is one of the plan's tools, kept on
+  the machine of the build outside every repository.
+
+This file:
+
+- Section 19 stands as the third plan has it, line for line, in front
+  of the notes. So its lines are as long as the plan's, up to 87
+  characters outside its tables, where the rest of this file keeps to
+  about 72. No word was changed for the fit.
+- The four lines of git's answer in section 19.2 hold a tab between
+  the 40 characters and the name, as git prints them and as the plan
+  has them. No other line of this file holds a tab.
+- The opening's paragraph for this step and these notes are the
+  build's own words. Every other change in this file is the plan's:
+  its twelve places and its section 19.
+- The notes of steps 1 to 5 stand as they were written.
+
+Brought in line on the operator's word:
+
+- Four comments that the plan does not name said less than there is
+  since this step. None was untrue. On the operator's word they were
+  brought in line before the commit.
+- One is in `src/app/pages/overview/overview.page.css`, over the
+  style of the lines under the tiles. It named the software line and
+  the registry line. It now names the versions line too, which has
+  the same style.
+- One is in `server/index.js`. It said that the newest commits on
+  GitHub main are read on the registry's clock. It now says the same
+  of the version tags.
+- Two are the comment over `GITHUB_MINUTES`, one in
+  `server/config.js` and one in `network/monitor.env`. Each said how
+  often the registry and the three commits are read. Each now names
+  the version tags as well, as the row of section 2 does. No value in
+  the settings file changed.
+- So this step's commit holds thirteen files, where the plan has
+  ten. `src/app/pages/overview/overview.page.css` differs from the
+  copy in which the plan was tried by that one comment, and by
+  nothing else. The three other files are not changed in that copy.
+  The build of the check wrote the same two files as before: a
+  comment does not reach them.
+- The two comments over the three repositories, in the same two
+  files, stand as they were. The plan names them and lets them stand.

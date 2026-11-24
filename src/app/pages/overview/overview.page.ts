@@ -60,11 +60,25 @@ interface Notice {
   text: string;
 }
 
-/** One tile: the validator's id, what the tile says, and its colour. */
+/** One tile: the validator's id, what the tile says, its colour, and the version of the validator's code it runs (docs/schemas.md section 19.4): the version's name, the commit's first 7 characters when it has no version tag, null when no commit is known. */
 interface Tile {
   id: number;
   says: string;
   colour: Colour;
+  version: string | null;
+}
+
+/** One group of the versions line: the validators of the newest sweep that run one version of the validator's code, or one commit that has no version tag. */
+interface VersionGroup {
+  version: string | null;
+  commit: string;
+  ids: number[];
+  usual: boolean;
+}
+
+/** A version's number, 3 for "v3". */
+function numberOf(version: string): number {
+  return Number(version.slice(1));
 }
 
 /** One tile of our own servers: its name, what the tile says, its colour, and the hint a mouse shows over it: the address that is asked, with the detail behind it. The monitor itself has no hint. */
@@ -76,10 +90,10 @@ interface OwnTile {
 }
 
 /**
- * The overview (docs/schemas.md sections 11.4 and 18.5), from top to
+ * The overview (docs/schemas.md sections 11.4, 18.5 and 19.4), from top to
  * bottom under the shell's bar: the four cards, the problem line, the
  * tiles of our own servers, the validators' tiles, the details of the
- * tapped tile, the software line and the registry line.
+ * tapped tile, the software line, the versions line and the registry line.
  *
  * The page asks GET /api/overview when it opens and every 15 seconds
  * after. One answer holds the whole screen; everything here is worked out
@@ -209,10 +223,11 @@ export class OverviewPage {
 
   /** The tiles, one for each registry row, in id order. A row no sweep has judged yet says a dash. */
   protected readonly tiles = computed<Tile[]>(() =>
-    (this.overview()?.validators ?? []).map(({ id, state }) => ({
+    (this.overview()?.validators ?? []).map(({ id, state, worker, version }) => ({
       id,
       says: state === null ? words.dash : words.state(state),
       colour: colourOf(state),
+      version: version ?? worker?.commit?.slice(0, 7) ?? null,
     })),
   );
 
@@ -265,6 +280,54 @@ export class OverviewPage {
       }
     }
     return parts.length === 0 ? [{ text: t.unknown }] : parts;
+  });
+
+  /**
+   * The versions line (section 19.4): which version of the validator's code
+   * runs on how many validators, from the newest sweep's commits. One group
+   * for each version, and one for each commit that has no version tag. The
+   * versions come first, the highest number first; then the commits without
+   * a tag, the one most validators run first. Every group but the one most
+   * validators are in names its validators. "All 25 run" stands when every
+   * active validator is in one group.
+   */
+  protected readonly versions = computed<Part[]>(() => {
+    const overview = this.overview();
+    if (overview === null) return [];
+    const { validators, software, network } = overview;
+    const t = words.versions;
+
+    const groups = new Map<string, VersionGroup>();
+    for (const { id, worker, version } of validators) {
+      const commit = worker?.commit ?? null;
+      if (commit === null) continue;
+      const key = version ?? commit;
+      const group = groups.get(key) ?? { version: version ?? null, commit, ids: [], usual: false };
+      group.ids.push(id);
+      if (commit === software.validator.commit) group.usual = true;
+      groups.set(key, group);
+    }
+    if (groups.size === 0) return [{ text: t.unknown }];
+
+    const sorted = [...groups.values()].sort((a, b) => {
+      if (a.version !== null && b.version !== null) return numberOf(b.version) - numberOf(a.version);
+      if (a.version !== null) return -1;
+      if (b.version !== null) return 1;
+      return b.ids.length - a.ids.length || (a.commit < b.commit ? -1 : 1);
+    });
+
+    const parts: Part[] = [{ text: t.lead }];
+    const [only] = sorted;
+    if (sorted.length === 1 && network !== null && only.ids.length === network.active) {
+      parts.push({ text: t.all(network.active) }, t.name(only.version, only.commit));
+    } else {
+      sorted.forEach((group, i) => {
+        if (i > 0) parts.push({ text: t.between });
+        parts.push(t.name(group.version, group.commit), { text: group.usual ? t.on(group.ids.length) : `${t.on(group.ids.length)}${t.who(group.ids)}` });
+      });
+    }
+    parts.push({ text: t.stop });
+    return parts;
   });
 
   /** The registry line: how many active rows, and whether the validators applied the registry on GitHub main. The second sentence is left out while no validator's hash is known. */

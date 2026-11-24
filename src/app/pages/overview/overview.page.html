@@ -42,7 +42,12 @@
         [attr.aria-pressed]="tile.id === tappedId()"
         (click)="tap(tile.id)"
       >
-        <span class="number">{{ tile.id }}</span>
+        <span class="top">
+          <span class="number">{{ tile.id }}</span>
+          @if (tile.version; as version) {
+            <span class="version">{{ version }}</span>
+          }
+        </span>
         <span class="says">{{ tile.says }}</span>
       </button>
     }
@@ -53,5 +58,6 @@
   }
 
   <p class="words"><app-parts [parts]="software()" /></p>
+  <p class="words"><app-parts [parts]="versions()" /></p>
   <p class="words"><app-parts [parts]="registry()" /></p>
 }

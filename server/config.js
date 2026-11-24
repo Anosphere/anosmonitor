@@ -79,7 +79,7 @@ export const config = Object.freeze({
   sweepSeconds: integer('SWEEP_SECONDS', 60),
   /** How long one answer may take, in seconds. */
   answerTimeoutSeconds: integer('ANSWER_TIMEOUT_SECONDS', 10),
-  /** How often the registry and the three commits are read from GitHub, in minutes. */
+  /** How often the registry, the three commits and the version tags are read from GitHub, in minutes. */
   githubMinutes: integer('GITHUB_MINUTES', 10),
   /** How long a sign-in lasts, in days. */
   sessionDays: integer('SESSION_DAYS', 30),

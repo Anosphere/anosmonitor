@@ -329,6 +329,27 @@ export const words = {
     unknown: `Software: ${DASH}`,
   },
 
+  /**
+   * The versions line (section 19.4), in pieces: which version of the
+   * validator's code runs on how many validators. "Validator versions: v3
+   * on 1 (validator 1), v2 on 20, v1 on 4 (validators 5, 9, 11, 23)."
+   */
+  versions: {
+    lead: 'Validator versions: ',
+    /** What a group is called: its version's name, "v3", or the commit in the code font when it has no version tag. */
+    name: (version: string | null, value: string): Part => (version === null ? commit(value) : { text: version }),
+    /** " on 4": how many validators run it. */
+    on: (n: number) => ` on ${n}`,
+    /** " (validator 1)", " (validators 5, 9, 11, 23)": which ones, for every group but the one most validators are in. */
+    who: (ids: number[]) => ` (${ids.length === 1 ? 'validator' : 'validators'} ${ids.join(', ')})`,
+    /** "all 25 run ": in front of the name when every active validator runs the same. */
+    all: (n: number) => `all ${n} run `,
+    between: ', ',
+    stop: '.',
+    /** No validator's commit is known. */
+    unknown: `Validator versions: ${DASH}`,
+  },
+
   /** The registry line (section 11.4), in pieces. */
   registry: {
     rows: (active: number) => `Registry: ${count(active, 'active row')}.`,
@@ -380,9 +401,9 @@ export const words = {
     noAnswer: (reason: string) => `no answer: ${reason}`,
     ms: (n: number) => `${Math.round(n)} ms`,
     software: 'Software',
-    /** "validator 6b27427, doorman 4cfade2, keyholder 6d4b89c": the three commits, each cut at 7 characters. */
-    softwareValue: (validator: string | null, doorman: string | null, keyholder: string | null) =>
-      `validator ${validator?.slice(0, 7) ?? DASH}, doorman ${doorman?.slice(0, 7) ?? DASH}, keyholder ${keyholder?.slice(0, 7) ?? DASH}`,
+    /** "validator v1 (6b27427), doorman 4cfade2, keyholder 6d4b89c": the three commits, each cut at 7 characters. `version` is the name of the version the validator's commit is, which stands in front of it; null when it has no version tag, and then the commit stands alone. */
+    softwareValue: (validator: string | null, doorman: string | null, keyholder: string | null, version: string | null) =>
+      `validator ${validator === null ? DASH : version === null ? validator.slice(0, 7) : `${version} (${validator.slice(0, 7)})`}, doorman ${doorman?.slice(0, 7) ?? DASH}, keyholder ${keyholder?.slice(0, 7) ?? DASH}`,
     registry: 'Registry',
     /** "doorman 1076ef27, 25 active; validator 1076ef27": the registry the doorman read, with its count of active rows, and the one the validator applied. */
     registryValue: (doorman: string | null, active: number | null, validator: string | null) =>

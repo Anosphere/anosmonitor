@@ -16,6 +16,13 @@ import { config } from '../config.js';
  *
  * A validator reports a short commit. It is "the newest on GitHub main"
  * when GitHub's 40 characters begin with it.
+ *
+ * The versions of the validator's code (docs/schemas.md section 19). For
+ * the validator's repository the same call also asks for `refs/tags/v*`.
+ * A tag named v and a whole number above 0, such as v3, names one version:
+ * the commit it stands on. The list is kept in memory and replaced as a
+ * whole by every read that worked. A validator's version is the tag whose
+ * 40 characters begin with the validator's short commit.
  */
 
 const run = promisify(execFile);
@@ -34,7 +41,34 @@ const mains = {
   keyholder: { commit: null, readAt: null },
 };
 
+/** What git is asked for besides main, for the validator's repository alone: every tag whose name begins with v. */
+const VERSION_TAGS = 'refs/tags/v*';
+
+/** One line of git's answer for a version tag: the 40 characters, the version's number, and `^{}` behind the line that carries an annotated tag's commit. */
+const VERSION_LINE = /^([0-9a-f]{40})\trefs\/tags\/v([1-9][0-9]{0,8})(\^\{\})?$/;
+
+/** The versions of the validator's code: [{ name, number, commit }], the lowest number first, `commit` 40 hex characters. Empty until a read worked. */
+let versions = [];
+
 let timer = null;
+
+/**
+ * The versions that git's answer names. A tag whose name is not v and a
+ * whole number above 0 is left out. An annotated tag has two lines, its own
+ * object and, behind `^{}`, the commit it stands on: the commit is taken.
+ */
+function versionsOf(stdout) {
+  const commits = new Map();
+  for (const line of stdout.split('\n')) {
+    const match = VERSION_LINE.exec(line);
+    if (match === null) continue;
+    const number = Number(match[2]);
+    if (match[3] !== undefined || !commits.has(number)) commits.set(number, match[1]);
+  }
+  return [...commits]
+    .sort(([a], [b]) => a - b)
+    .map(([number, commit]) => ({ name: `v${number}`, number, commit }));
+}
 
 /** Why a git call failed, in one line. */
 function reasonOf(err) {
@@ -46,8 +80,9 @@ function reasonOf(err) {
 /** One program's read. A read that fails keeps the older value and logs one line. Never throws. */
 async function readMain(program) {
   const repo = REPOS[program];
+  const asked = program === 'validator' ? ['refs/heads/main', VERSION_TAGS] : ['refs/heads/main'];
   try {
-    const { stdout } = await run('git', ['ls-remote', repo, 'refs/heads/main'], {
+    const { stdout } = await run('git', ['ls-remote', repo, ...asked], {
       encoding: 'utf8',
       timeout: config.githubTimeoutMs,
       // No prompt for a password: git fails at once where it would ask.
@@ -56,6 +91,7 @@ async function readMain(program) {
     const match = /^([0-9a-f]{40})\trefs\/heads\/main$/m.exec(stdout);
     if (match === null) throw new Error('the answer names no refs/heads/main');
     mains[program] = { commit: match[1], readAt: new Date() };
+    if (program === 'validator') versions = versionsOf(stdout);
   } catch (err) {
     console.error(`GitHub main of the ${program} not read from ${repo}: ${reasonOf(err)}`);
   }
@@ -84,6 +120,21 @@ export function stopGithub() {
 /** GitHub main's newest commits: { validator, doorman, keyholder }, each { commit, readAt }, both null until a read worked. */
 export function githubMains() {
   return mains;
+}
+
+/**
+ * The version of the validator's code that a short commit is: the name of
+ * the tag whose 40 characters begin with it, "v3". When two tags stand on
+ * one commit, the one with the higher number. Null when no tag fits, when
+ * the commit is null, and until a read of the tags worked.
+ */
+export function versionOf(commit) {
+  if (commit === null) return null;
+  let name = null;
+  for (const version of versions) {
+    if (version.commit.startsWith(commit)) name = version.name;
+  }
+  return name;
 }
 
 /**

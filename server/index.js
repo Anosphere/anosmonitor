@@ -41,7 +41,8 @@ try {
 startSessionCleanup();
 
 // The registry: the kept copy now, GitHub's file right after and every
-// GITHUB_MINUTES. The newest commits on GitHub main, on the same clock.
+// GITHUB_MINUTES. The newest commits on GitHub main and the version tags,
+// on the same clock.
 // The sweeps: the shown states from the history, then the first sweep as
 // soon as a registry is there, and one every SWEEP_SECONDS after it.
 try {

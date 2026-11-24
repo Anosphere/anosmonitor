@@ -106,6 +106,10 @@ export interface Keyholder {
  * are there, and null where nothing is known: `doorman` when port 3000 gave
  * no answer, with the short reason in `reason`; `worker` and `keyholder`
  * when there was none; `keyholderUp` for a row with no keyholder check.
+ * `version` is the name of the version of the validator's code that its
+ * commit is, "v3" (section 19.3): null when the commit has no version tag
+ * or is not known, and missing in an answer of a server from before the
+ * versions were built.
  */
 export interface Validator {
   id: number;
@@ -119,6 +123,7 @@ export interface Validator {
   doorman?: Doorman | null;
   worker?: Worker | null;
   keyholder?: Keyholder | null;
+  version?: string | null;
 }
 
 /**

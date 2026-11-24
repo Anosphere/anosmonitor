@@ -21,8 +21,15 @@ each signing server through the wallet. Their tiles stand above the
 validators'. It cannot tell the machines of a pair apart: a name answers
 as long as one of them works (`docs/schemas.md`, section 18).
 
-The plans it is built from are `forclaude/monitor-plan-1.md` and, for
-our own servers, `forclaude/monitor-plan-2.md`, beside the repositories.
+The page also says which version of the validator's code each validator
+runs: v1, v2, v3. A version is a git tag of that name on the validator's
+repository on GitHub, which the monitor reads every ten minutes. A
+commit that has no such tag shows as the commit (`docs/schemas.md`,
+section 19).
+
+The plans it is built from are `forclaude/monitor-plan-1.md`, for our
+own servers `forclaude/monitor-plan-2.md`, and for the versions of the
+validator's code `forclaude/monitor-plan-3.md`, beside the repositories.
 The record is `docs/schemas.md`: the settings, the tables, the states
 and the rules.
 
