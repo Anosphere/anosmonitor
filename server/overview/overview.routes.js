@@ -4,7 +4,7 @@ import { config } from '../config.js';
 import { query } from '../db/pool.js';
 import { currentRegistry } from '../registry/registry.js';
 import { ownServers } from '../servers/servers.js';
-import { githubMains, softwareLine } from '../software/github.js';
+import { githubMains, softwareLine, versionOf } from '../software/github.js';
 import { newestSweep } from '../sweep/sweep.js';
 
 /**
@@ -16,8 +16,9 @@ import { newestSweep } from '../sweep/sweep.js';
  *
  * The overview is put together from memory: the registry in use
  * (server/registry/registry.js), the newest sweep (server/sweep/sweep.js)
- * and the newest commits on GitHub main (server/software/github.js). So
- * asking often costs nothing. The history is read from validator_states.
+ * and the newest commits on GitHub main with the version tags
+ * (server/software/github.js). So asking often costs nothing. The history
+ * is read from validator_states.
  *
  * Every time in an answer is in UTC, as an ISO text.
  *
@@ -51,6 +52,10 @@ function iso(date) {
  * the first sweep, and for a row that turned active since. Then everything
  * but the id and the address is null. `state` and `since` are null too for
  * a row that no judged sweep has seen yet.
+ *
+ * `version` is the name of the version of the validator's code that the
+ * newest sweep's commit is, "v3" (docs/schemas.md section 19.3). Null when
+ * that commit has no version tag, and when no commit is known.
  */
 function validatorOf(row, swept) {
   if (!row.active) return { id: row.id, active: false, state: 'notActive' };
@@ -66,6 +71,7 @@ function validatorOf(row, swept) {
     doorman: swept?.doorman ?? null,
     worker: swept?.worker ?? null,
     keyholder: swept?.keyholder ?? null,
+    version: versionOf(swept?.worker?.commit ?? null),
   };
 }
 

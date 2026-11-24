@@ -80,6 +80,22 @@
   text-align: center;
 }
 
+/* The first line of a validator's tile: its number, and beside it the version of the validator's code. On a tile too narrow for both, the version goes under the number. */
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: 6px;
+}
+
+/* The version on a validator's tile: "v2", or the commit when it has no version tag. */
+.version {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
 /* The heading over each of the two groups of tiles: our own servers, the validators. */
 .heading {
   margin: 16px 0 8px;
@@ -112,7 +128,7 @@
   margin-top: 16px;
 }
 
-/* The software line and the registry line. */
+/* The software line, the versions line and the registry line. */
 .words {
   margin: 16px 0 0;
   line-height: 1.6;

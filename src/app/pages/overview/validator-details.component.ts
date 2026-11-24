@@ -79,7 +79,7 @@ export class ValidatorDetailsComponent {
       { label: t.doormanRunning, value: doorman === null || doorman.uptimeSeconds === null ? dash : lasting(doorman.uptimeSeconds) },
       { label: t.certificate, value: certificateOf(doorman) },
       { label: t.answer, value: answerOf(validator) },
-      { label: t.software, value: softwareOf(doorman, worker, keyholder) },
+      { label: t.software, value: softwareOf(doorman, worker, keyholder, validator.version ?? null) },
       { label: t.registry, value: registryOf(doorman, worker) },
       { label: t.keyholder, value: keyholderOf(validator, keyholder) },
       { label: t.address, value: validator.address ?? dash },
@@ -115,11 +115,11 @@ function answerOf(validator: Validator): string {
   return words.dash;
 }
 
-/** The Software row: the three commits. A dash for the whole row when none is known. */
-function softwareOf(doorman: Doorman | null, worker: Worker | null, keyholder: Keyholder | null): string {
+/** The Software row: the three commits, the validator's with the name of its version in front when it has one (section 19.4). A dash for the whole row when no commit is known. */
+function softwareOf(doorman: Doorman | null, worker: Worker | null, keyholder: Keyholder | null, version: string | null): string {
   const commits = [worker?.commit ?? null, doorman?.commit ?? null, keyholder?.commit ?? null] as const;
   if (commits.every((commit) => commit === null)) return words.dash;
-  return words.details.softwareValue(...commits);
+  return words.details.softwareValue(...commits, version);
 }
 
 /** The Registry row: the registry the doorman read, with its count of active rows, and the one the validator applied. A dash for the whole row when neither is known. */
